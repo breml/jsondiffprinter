@@ -1,0 +1,14 @@
+-- before.json --
+null
+-- patch.json --
+[
+  {
+    "value": "foobar",
+    "op": "add",
+    "path": ""
+  }
+]
+-- diff.json --
++ "foobar"
+-- diff.tf --
+"foobar"

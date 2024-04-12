@@ -1,0 +1,15 @@
+-- before.json --
+"<null>"
+-- patch.json --
+[
+  {
+    "value": "\u003cfoobar\u003e",
+    "op": "replace",
+    "path": ""
+  }
+]
+-- diff.json --
+- "<null>"
++ "<foobar>"
+-- diff.tf --
+"<null>" -> "<foobar>"

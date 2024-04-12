@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  generate:
+    dir: './cmd/generate_testdata'
+    cmds:
+      - go generate .

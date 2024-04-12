@@ -1,0 +1,172 @@
+-- before.json --
+{
+  "a": 1,
+  "b": {
+      "c": 2,
+      "b1": "a",
+      "b2": "b"
+  },
+  "d": 4,
+  "e": null,
+  "f": [
+      5,
+      6,
+      7
+  ],
+  "j": {
+      "a": 1
+  }
+}
+-- patch.json --
+[
+  {
+    "value": {
+      "1": [
+        1,
+        2,
+        3,
+        true
+      ]
+    },
+    "op": "add",
+    "path": "/a1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b2"
+  },
+  {
+    "value": 3,
+    "op": "replace",
+    "path": "/b/c"
+  },
+  {
+    "op": "remove",
+    "path": "/e"
+  },
+  {
+    "value": 7,
+    "op": "replace",
+    "path": "/f/1"
+  },
+  {
+    "value": 8,
+    "op": "replace",
+    "path": "/f/2"
+  },
+  {
+    "value": 9,
+    "op": "add",
+    "path": "/f/-"
+  },
+  {
+    "value": 10,
+    "op": "add",
+    "path": "/f/-"
+  },
+  {
+    "value": 14,
+    "op": "add",
+    "path": "/g"
+  },
+  {
+    "value": [
+      1,
+      2,
+      3
+    ],
+    "op": "add",
+    "path": "/h"
+  },
+  {
+    "value": [
+      true,
+      false
+    ],
+    "op": "replace",
+    "path": "/j"
+  }
+]
+-- diff.json --
+  {
+    "a": 1,
++   "a1": {
++     "1": [
++       1,
++       2,
++       3,
++       true
+      ]
+    },
+    "b": {
+-     "b1": "a",
+-     "b2": "b",
+-     "c": 2
++     "c": 3
+    },
+    "d": 4,
+-   "e": null,
+    "f": [
+      5,
+-     6,
++     7,
+-     7,
++     8,
++     9,
++     10
+    ],
++   "g": 14,
++   "h": [
++     1,
++     2,
++     3
+    ],
+-   "j": {
+-     "a": 1
+    }
++   "j": [
++     true,
++     false
+    ]
+  }
+-- diff.tf --
+  {
+  + a1 = {
+    + 1 = [
+      + 1
+      + 2
+      + 3
+      + true
+      ]
+    }
+    b = {
+    - b1 = "a"
+    - b2 = "b"
+    ~ c = 2 -> 3
+    }
+  - e = null
+    f = [
+      5
+    ~ 6 -> 7
+    ~ 7 -> 8
+    + 9
+    + 10
+    ]
+  + g = 14
+  + h = [
+    + 1
+    + 2
+    + 3
+    ]
+  ~ j = {
+    - a = 1
+    } -> [
+    + true
+    + false
+    ]
+    # (2 unchanged attribute hidden)
+  }

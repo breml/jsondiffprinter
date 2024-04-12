@@ -1,12 +1,11 @@
-package jsondiffprinter_test
+package jsonpointer_test
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/breml/jsondiffprinter"
+	"github.com/breml/jsondiffprinter/internal/jsonpointer"
+	"github.com/breml/jsondiffprinter/internal/require"
 )
 
 func TestPointerFromJSON(t *testing.T) {
@@ -65,19 +64,21 @@ func TestPointerFromJSON(t *testing.T) {
 
 			assertErr: require.Error,
 		},
+		// This is not according to the RFC, but we allow it for convenience.
 		{
-			name: "error - no leading slash",
+			name: "no leading slash",
 
 			json: `{"pointer": "foo"}`,
 
-			assertErr: require.Error,
+			assertErr: require.NoError,
+			want:      "/foo",
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			jsonPointer := struct {
-				Pointer jsondiffprinter.Pointer `json:"pointer"`
+				Pointer jsonpointer.Pointer `json:"pointer"`
 			}{}
 
 			err := json.Unmarshal([]byte(tc.json), &jsonPointer)
@@ -92,35 +93,35 @@ func TestPointerToJSON(t *testing.T) {
 	tt := []struct {
 		name string
 
-		pointer jsondiffprinter.Pointer
+		pointer jsonpointer.Pointer
 
 		want string
 	}{
 		{
 			name: "success - no pointer",
 
-			pointer: jsondiffprinter.Pointer(nil),
+			pointer: jsonpointer.Pointer(nil),
 
 			want: `{"pointer":""}`,
 		},
 		{
 			name: "success - empty string",
 
-			pointer: jsondiffprinter.Pointer([]string{}),
+			pointer: jsonpointer.Pointer([]string{}),
 
 			want: `{"pointer":""}`,
 		},
 		{
 			name: "success - single slash",
 
-			pointer: jsondiffprinter.Pointer([]string{""}),
+			pointer: jsonpointer.Pointer([]string{""}),
 
 			want: `{"pointer":"/"}`,
 		},
 		{
 			name: "success - single slash",
 
-			pointer: jsondiffprinter.Pointer([]string{"foo", "bar", "baz", "1"}),
+			pointer: jsonpointer.Pointer([]string{"foo", "bar", "baz", "1"}),
 
 			want: `{"pointer":"/foo/bar/baz/1"}`,
 		},
@@ -129,7 +130,7 @@ func TestPointerToJSON(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			jsonPointer := struct {
-				Pointer jsondiffprinter.Pointer `json:"pointer"`
+				Pointer jsonpointer.Pointer `json:"pointer"`
 			}{
 				Pointer: tc.pointer,
 			}
@@ -137,7 +138,7 @@ func TestPointerToJSON(t *testing.T) {
 			b, err := json.Marshal(jsonPointer)
 			require.NoError(t, err)
 
-			require.JSONEq(t, tc.want, string(b))
+			require.Equal(t, tc.want, string(b))
 		})
 	}
 }
@@ -146,26 +147,26 @@ func TestPointerAppend(t *testing.T) {
 	tt := []struct {
 		name string
 
-		pointer jsondiffprinter.Pointer
+		pointer jsonpointer.Pointer
 		token   string
 
-		want jsondiffprinter.Pointer
+		want jsonpointer.Pointer
 	}{
 		{
 			name: "success - empty pointer",
 
-			pointer: jsondiffprinter.Pointer(nil),
+			pointer: jsonpointer.Pointer(nil),
 			token:   "foo",
 
-			want: jsondiffprinter.Pointer([]string{"foo"}),
+			want: jsonpointer.Pointer([]string{"foo"}),
 		},
 		{
 			name: "success - non-empty pointer",
 
-			pointer: jsondiffprinter.Pointer([]string{"foo", "bar"}),
+			pointer: jsonpointer.Pointer([]string{"foo", "bar"}),
 			token:   "baz",
 
-			want: jsondiffprinter.Pointer([]string{"foo", "bar", "baz"}),
+			want: jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
 		},
 	}
 
@@ -180,26 +181,26 @@ func TestPointerAppendIndex(t *testing.T) {
 	tt := []struct {
 		name string
 
-		pointer jsondiffprinter.Pointer
+		pointer jsonpointer.Pointer
 		index   int
 
-		want jsondiffprinter.Pointer
+		want jsonpointer.Pointer
 	}{
 		{
 			name: "success - empty pointer",
 
-			pointer: jsondiffprinter.Pointer(nil),
+			pointer: jsonpointer.Pointer(nil),
 			index:   1,
 
-			want: jsondiffprinter.Pointer([]string{"1"}),
+			want: jsonpointer.Pointer([]string{"1"}),
 		},
 		{
 			name: "success - non-empty pointer",
 
-			pointer: jsondiffprinter.Pointer([]string{"foo", "bar"}),
+			pointer: jsonpointer.Pointer([]string{"foo", "bar"}),
 			index:   2,
 
-			want: jsondiffprinter.Pointer([]string{"foo", "bar", "2"}),
+			want: jsonpointer.Pointer([]string{"foo", "bar", "2"}),
 		},
 	}
 
@@ -214,56 +215,56 @@ func TestPointerIsParentOf(t *testing.T) {
 	tt := []struct {
 		name string
 
-		parent jsondiffprinter.Pointer
-		child  jsondiffprinter.Pointer
+		parent jsonpointer.Pointer
+		child  jsonpointer.Pointer
 
 		want bool
 	}{
 		{
 			name: "success - empty pointers",
 
-			parent: jsondiffprinter.Pointer(nil),
-			child:  jsondiffprinter.Pointer(nil),
+			parent: jsonpointer.Pointer(nil),
+			child:  jsonpointer.Pointer(nil),
 
 			want: false,
 		},
 		{
 			name: "success - empty parent",
 
-			parent: jsondiffprinter.Pointer(nil),
-			child:  jsondiffprinter.Pointer([]string{"foo"}),
+			parent: jsonpointer.Pointer(nil),
+			child:  jsonpointer.Pointer([]string{"foo"}),
 
 			want: true,
 		},
 		{
 			name: "success - empty child",
 
-			parent: jsondiffprinter.Pointer([]string{"foo"}),
-			child:  jsondiffprinter.Pointer(nil),
+			parent: jsonpointer.Pointer([]string{"foo"}),
+			child:  jsonpointer.Pointer(nil),
 
 			want: false,
 		},
 		{
 			name: "success - equal pointers",
 
-			parent: jsondiffprinter.Pointer([]string{"foo", "bar", "baz"}),
-			child:  jsondiffprinter.Pointer([]string{"foo", "bar", "baz"}),
+			parent: jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
+			child:  jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
 
 			want: false,
 		},
 		{
 			name: "success - parent is parent of child",
 
-			parent: jsondiffprinter.Pointer([]string{"foo", "bar"}),
-			child:  jsondiffprinter.Pointer([]string{"foo", "bar", "baz"}),
+			parent: jsonpointer.Pointer([]string{"foo", "bar"}),
+			child:  jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
 
 			want: true,
 		},
 		{
 			name: "success - parent is not parent of child",
 
-			parent: jsondiffprinter.Pointer([]string{"foo", "baz"}),
-			child:  jsondiffprinter.Pointer([]string{"foo", "bar", "baz"}),
+			parent: jsonpointer.Pointer([]string{"foo", "baz"}),
+			child:  jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
 
 			want: false,
 		},

@@ -9,7 +9,6 @@ import (
 	"github.com/wI2L/jsondiff"
 
 	"github.com/breml/jsondiffprinter"
-	"github.com/breml/jsondiffprinter/formatter"
 )
 
 var format = flag.String("format", "ascii", "output format to use (ascii, terraform)")
@@ -45,26 +44,24 @@ func run(args []string) error {
 		return err
 	}
 
-	err = json.Unmarshal([]byte(afterJSON), &after)
+	err = json.Unmarshal(afterJSON, &after)
 	if err != nil {
 		return err
 	}
-
-	current := jsondiffprinter.ExhaustiveJSONPatchTests(before)
 
 	patch, err := jsondiff.Compare(before, after)
 	if err != nil {
 		return err
 	}
 
-	res := jsondiffprinter.ApplyPatch(current, patch)
-
 	switch *format {
 	case "ascii":
-		return formatter.NewAsciiFormatter(os.Stdout).Format(res)
+		err = jsondiffprinter.NewJSONFormatter(os.Stdout).Format(before, patch)
 	case "terraform":
-		return formatter.NewTerraformFormatter(os.Stdout).Format(res)
+		err = jsondiffprinter.NewTerraformFormatter(os.Stdout).Format(before, patch)
 	default:
 		return fmt.Errorf("unknown formatter: %s", *format)
 	}
+
+	return err
 }

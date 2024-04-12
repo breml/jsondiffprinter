@@ -1,8 +1,7 @@
-package jsondiffprinter
+package jsonpointer
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -17,39 +16,77 @@ func NewPointer() Pointer {
 	return make([]string, 0, defaultPointerAllocationSize)
 }
 
-func NewPointerFromPath(path string) (Pointer, error) {
+func NewPointerFromPath(path string) Pointer {
 	if len(path) == 0 {
-		return NewPointer(), nil
+		return NewPointer()
 	}
 
-	if path[0] != '/' {
-		return nil, fmt.Errorf("non-empty references must begin with a '/' character")
+	// According to the RFC, non-empty references must begin with a '/' character.
+	// For simplification purposes, we just assume the '/' character is present.
+	if path[0] == '/' {
+		path = path[1:]
 	}
-	path = path[1:]
 
 	toks := strings.Split(path, separator)
 	for i, t := range toks {
 		toks[i] = unescapeToken(t)
 	}
-	return Pointer(toks), nil
+	return Pointer(toks)
 }
 
 func (p Pointer) Append(s string) Pointer {
-	p = append(p, s)
-	return p
+	pp := make(Pointer, 0, len(p)+1)
+	pp = append(pp, p...)
+	pp = append(pp, s)
+	return pp
 }
 
 func (p Pointer) AppendIndex(i int) Pointer {
-	p = append(p, strconv.Itoa(i))
-	return p
+	pp := make(Pointer, 0, len(p)+1)
+	pp = append(pp, p...)
+	pp = append(pp, strconv.Itoa(i))
+	return pp
+}
+
+func (p Pointer) LessThan(alt Pointer) (b bool) {
+	if p.HasSameAncestorsAs(alt) && (p[len(p)-1] == "-" || alt[len(alt)-1] == "-") {
+		if p[len(p)-1] == "-" {
+			return false
+		}
+		return true
+	}
+	for i := 0; i < len(p) && i < len(alt); i++ {
+		if p[i] != alt[i] {
+			return p[i] < alt[i]
+		}
+	}
+	return len(p) < len(alt)
+}
+
+func (p Pointer) Equals(alt Pointer) bool {
+	return equal(p, alt)
 }
 
 func (p Pointer) IsParentOf(child Pointer) bool {
-	if len(p) != len(child)-1 {
+	if len(child) < 1 {
 		return false
 	}
-	for i := range p {
-		if p[i] != child[i] {
+	return equal(p, child[:len(child)-1])
+}
+
+func (p Pointer) HasSameAncestorsAs(alt Pointer) bool {
+	if len(p) < 1 || len(alt) < 1 {
+		return false
+	}
+	return equal(p[:len(p)-1], alt[:len(alt)-1])
+}
+
+func equal(a, b Pointer) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
 			return false
 		}
 	}
@@ -84,10 +121,7 @@ func (p *Pointer) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	np, err := NewPointerFromPath(s)
-	if err != nil {
-		return err
-	}
+	np := NewPointerFromPath(s)
 
 	*p = np
 	return nil
