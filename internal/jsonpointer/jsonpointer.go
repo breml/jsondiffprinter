@@ -50,10 +50,7 @@ func (p Pointer) AppendIndex(i int) Pointer {
 
 func (p Pointer) LessThan(alt Pointer) (b bool) {
 	if p.HasSameAncestorsAs(alt) && (p[len(p)-1] == "-" || alt[len(alt)-1] == "-") {
-		if p[len(p)-1] == "-" {
-			return false
-		}
-		return true
+		return p[len(p)-1] != "-"
 	}
 	for i := 0; i < len(p) && i < len(alt); i++ {
 		if p[i] != alt[i] {

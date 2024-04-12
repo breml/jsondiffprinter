@@ -27,7 +27,7 @@ type metadata struct {
 }
 
 func TestFormatter(t *testing.T) {
-	files, err := filepath.Glob("testdata/generated/*.txtar")
+	files, err := filepath.Glob(filepath.Join("testdata", "generated", "*.txtar"))
 	require.NoError(t, err)
 
 	for _, filename := range files {
@@ -129,11 +129,14 @@ func TestFormatter(t *testing.T) {
 }
 
 func txtarFileByName(t *testing.T, txtar *txtar.Archive, name string) *txtar.File {
+	t.Helper()
+
 	for _, f := range txtar.Files {
 		if f.Name == name {
 			return &f
 		}
 	}
+
 	t.Fatalf("file %q not found", name)
 	return nil
 }
