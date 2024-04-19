@@ -16,5 +16,3 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 )
-
-replace github.com/breml/jsondiffprinter => ../

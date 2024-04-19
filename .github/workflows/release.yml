@@ -25,10 +25,6 @@ jobs:
         with:
           go-version: "stable"
 
-      - name: Remove go.mod replace
-        run: |
-          sed -i '/replace github\.com\/breml\/jsondiffprinter => ..\//d' go.mod
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
