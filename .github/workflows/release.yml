@@ -10,6 +10,9 @@ jobs:
   goreleaser:
     name: Release jd
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./cmd
 
     steps:
       - name: Checkout
@@ -25,6 +28,7 @@ jobs:
       - name: Remove go.mod replace
         run: |
           sed -i '/replace github\.com\/breml\/jsondiffprinter => ..\//d' go.mod
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
