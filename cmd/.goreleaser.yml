@@ -26,6 +26,6 @@ changelog:
 release:
   github:
     owner: breml
-    name: jd
+    name: jsondiffprinter
 gomod:
   proxy: false
