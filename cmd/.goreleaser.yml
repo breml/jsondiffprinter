@@ -22,10 +22,10 @@ archives:
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
-  skip: true
+  disable: true
 release:
   github:
     owner: breml
     name: jd
 gomod:
-  proxy: true
+  proxy: false
