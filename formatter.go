@@ -237,6 +237,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 					withKey:             true,
 				})
 			}
+
 		case jsonpatch.OperationAdd:
 			hasChange = true
 			v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(op.Operation))
@@ -514,6 +515,7 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 				jsonEncode = true
 			}
 		}
+
 		sb := strings.Builder{}
 		encoder := json.NewEncoder(&sb)
 		jsonInJSONPrefix := f.prefix + prefix + "  "
