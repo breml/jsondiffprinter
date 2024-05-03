@@ -1,0 +1,30 @@
+-- before.json --
+{
+  "id": "1",
+  "triggers": {
+      "foo": "bar"
+  }
+}
+-- after.json --
+{
+  "id": "<known after>",
+  "triggers": {
+    "foo": "baz"
+  }
+}
+-- diff.json --
+  {
+-   "id": "1",
++   "id": "<known after>",
+    "triggers": {
+-     "foo": "bar"
++     "foo": "baz"
+    }
+  }
+-- diff.tf --
+  {
+  ~ id = "1" -> "<known after>"
+  ~ triggers = { # forces replacement
+    ~ foo = "bar" -> "baz"
+    }
+  }

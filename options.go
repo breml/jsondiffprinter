@@ -55,3 +55,9 @@ func WithJSONinJSONCompare(jsonInJSONComparer Comparer) Option {
 		f.jsonInJSONComparer = jsonInJSONComparer
 	}
 }
+
+func WithPatchSeriesPostProcess(patchSeriesPostProcess PatchSeriesPostProcessor) Option {
+	return func(f *Formatter) {
+		f.patchSeriesPostProcess = patchSeriesPostProcess
+	}
+}

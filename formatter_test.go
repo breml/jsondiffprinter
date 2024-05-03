@@ -10,6 +10,7 @@ import (
 	"golang.org/x/tools/txtar"
 
 	"github.com/breml/jsondiffprinter"
+	"github.com/breml/jsondiffprinter/internal/jsonpatch"
 	"github.com/breml/jsondiffprinter/internal/require"
 )
 
@@ -23,6 +24,7 @@ type metadata struct {
 	Terraform struct {
 		Indentation   *string `json:"indentation"`
 		HideUnchanged *bool   `json:"hideUnchanged"`
+		NoteAdder     *bool   `json:"noteAdder"`
 	} `json:"terraform"`
 }
 
@@ -92,6 +94,10 @@ func TestFormatter(t *testing.T) {
 				terraformOptions = append(terraformOptions, jsondiffprinter.WithHideUnchanged(*metadata.Terraform.HideUnchanged))
 			}
 
+			if metadata.Terraform.NoteAdder != nil {
+				terraformOptions = append(terraformOptions, jsondiffprinter.WithPatchSeriesPostProcess(noteAdder))
+			}
+
 			var buf bytes.Buffer
 			formatters := []struct {
 				name      string
@@ -138,4 +144,13 @@ func txtarFileByName(t *testing.T, txtar *txtar.Archive, name string) *txtar.Fil
 
 	t.Fatalf("file %q not found", name)
 	return nil
+}
+
+// FIXME: make this generic, such that a structure `replace_paths`
+// from the Terraform plan.json can be provided.
+func noteAdder(diff jsonpatch.Patch) jsonpatch.Patch {
+	diff[2].OperationOverride = jsonpatch.OperationReplace
+	diff[2].Note = "forces replacement"
+
+	return diff
 }

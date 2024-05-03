@@ -26,6 +26,8 @@ const (
 
 type Comparer func(before, after any) ([]byte, error)
 
+type PatchSeriesPostProcessor func(diff jsonpatch.Patch) jsonpatch.Patch
+
 type Formatter struct {
 	w io.Writer
 	c colorize
@@ -42,6 +44,7 @@ type Formatter struct {
 	hideUnchanged                        bool
 	omitChangeIndicatorOnEmptyKey        bool
 	jsonInJSONComparer                   Comparer
+	patchSeriesPostProcess               PatchSeriesPostProcessor
 }
 
 func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
@@ -97,9 +100,9 @@ func (v valueType) LeftBracket() string {
 	case valueTypePlain:
 		return ""
 	case valueTypeObject:
-		return "{\n"
+		return "{"
 	case valueTypeArray:
-		return "[\n"
+		return "["
 	default:
 		panic("undefined value type")
 	}
@@ -133,6 +136,10 @@ func (f Formatter) Format(before any, jsonpatch any) error {
 	diff, err := compileDiffPatchSeries(beforePatchTestSeries, patch)
 	if err != nil {
 		return err
+	}
+
+	if f.patchSeriesPostProcess != nil {
+		diff = f.patchSeriesPostProcess(diff)
 	}
 
 	f.printPatch(diff, nil, false)
@@ -193,7 +200,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 					key:                 currentKey,
 					value:               buf.String(),
 					valType:             valueTypeObject,
-					opType:              op.Operation,
+					op:                  op,
 					withKey:             true,
 				})
 
@@ -217,7 +224,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 					key:                 currentKey,
 					value:               buf.String(),
 					valType:             valueTypeArray,
-					opType:              op.Operation,
+					op:                  op,
 					withKey:             true,
 				})
 
@@ -233,7 +240,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 					indent:              indent,
 					key:                 currentKey,
 					value:               v,
-					opType:              op.Operation,
+					op:                  op,
 					withKey:             true,
 				})
 			}
@@ -246,7 +253,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 				indent:              indent,
 				key:                 currentKey,
 				value:               v,
-				opType:              op.Operation,
+				op:                  op,
 				withKey:             withKey,
 			})
 
@@ -258,7 +265,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 				indent:              indent,
 				key:                 currentKey,
 				value:               v,
-				opType:              op.Operation,
+				op:                  op,
 				withKey:             withKey,
 			})
 
@@ -280,7 +287,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 				value:               v,
 				valueOld:            vold,
 				valueOldComma:       f.printCommaOrNot(i, patch, op),
-				opType:              op.Operation,
+				op:                  op,
 				withKey:             withKey,
 			})
 		}
@@ -303,21 +310,26 @@ type printOpConfig struct {
 	valueOld            string
 	valueOldComma       string
 	valType             valueType
-	opType              jsonpatch.OperationType
+	op                  jsonpatch.Operation
 	withKey             bool
 }
 
 func (f Formatter) printOp(cfg printOpConfig) {
-	if cfg.opType == jsonpatch.OperationReplace && !f.singleLineReplace {
+	if cfg.op.Operation == jsonpatch.OperationReplace && !f.singleLineReplace {
+		op := cfg.op
+		op.Operation = jsonpatch.OperationRemove
 		f.printOp(printOpConfig{
 			preDiffMarkerIndent: cfg.preDiffMarkerIndent,
 			indent:              cfg.indent,
 			key:                 cfg.key,
 			value:               cfg.valueOld,
 			valType:             cfg.valType,
-			opType:              jsonpatch.OperationRemove,
+			op:                  op,
 			withKey:             cfg.withKey,
 		})
+
+		op = cfg.op
+		op.Operation = jsonpatch.OperationAdd
 		fmt.Fprintf(f.w, "%s\n", cfg.valueOldComma)
 		f.printOp(printOpConfig{
 			preDiffMarkerIndent: cfg.preDiffMarkerIndent,
@@ -325,14 +337,26 @@ func (f Formatter) printOp(cfg printOpConfig) {
 			key:                 cfg.key,
 			value:               cfg.value,
 			valType:             cfg.valType,
-			opType:              jsonpatch.OperationAdd,
+			op:                  op,
 			withKey:             cfg.withKey,
 		})
 		return
 	}
 
+	eol := ""
+	if cfg.op.Note != "" {
+		eol = " # " + cfg.op.Note
+	}
+	if len(cfg.valType.LeftBracket()) > 0 {
+		eol = cfg.valType.LeftBracket() + eol + "\n"
+	}
+	opTypeIndicator := f.opTypeIndicator(cfg.op.Operation)
+	if cfg.op.OperationOverride != "" {
+		opTypeIndicator = f.opTypeIndicator(cfg.op.OperationOverride)
+	}
+
 	if cfg.withKey {
-		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, f.opTypeIndicator(cfg.opType), cfg.indent, cfg.key, cfg.valType.LeftBracket())
+		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, opTypeIndicator, cfg.indent, cfg.key, eol)
 	}
 	if cfg.valueOld != "" {
 		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.singleLineReplaceTransitionIndicator))
@@ -408,12 +432,14 @@ func (f Formatter) processJSONInJSON(op jsonpatch.Operation, currentPath jsonpoi
 
 	withKey := !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey
 	v := fmt.Sprintf("jsonencode(\n%s%s  %s%s%[1]s%[3]s  )\n", preDiffMarkerIndent, f.indentation, indent, strings.Trim(buf.String(), " "))
+	opReplace := op
+	opReplace.Operation = jsonpatch.OperationReplace
 	f.printOp(printOpConfig{
 		preDiffMarkerIndent: preDiffMarkerIndent,
 		indent:              indent,
 		key:                 currentKey,
 		value:               v,
-		opType:              jsonpatch.OperationReplace,
+		op:                  opReplace,
 		withKey:             withKey,
 	})
 
