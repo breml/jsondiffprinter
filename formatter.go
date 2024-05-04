@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/colorstring"
-
 	"github.com/breml/jsondiffprinter/internal/jsonpatch"
 	"github.com/breml/jsondiffprinter/internal/jsonpointer"
 )
@@ -23,14 +21,14 @@ const (
 
 	SingleLineReplaceIndicatorTerraform = `~`
 
-	SingleLineReplaceTransitionIndicatorTerraform = `[yellow][bold]->[reset]`
+	SingleLineReplaceTransitionIndicatorTerraform = `->`
 )
 
 type Comparer func(before, after any) ([]byte, error)
 
 type Formatter struct {
 	w io.Writer
-	c colorstring.Colorize
+	c colorize
 
 	prefix                               string
 	indentation                          string
@@ -49,9 +47,8 @@ type Formatter struct {
 func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
 	f := Formatter{
 		w: w,
-		c: colorstring.Colorize{
-			Colors:  colorstring.DefaultColors,
-			Disable: true,
+		c: colorize{
+			disable: true,
 		},
 
 		indentation:       "  ",
@@ -70,9 +67,8 @@ func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
 func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
 	f := Formatter{
 		w: w,
-		c: colorstring.Colorize{
-			Colors:  colorstring.DefaultColors,
-			Disable: false,
+		c: colorize{
+			disable: false,
 		},
 
 		indentation:                          "    ",
@@ -93,6 +89,40 @@ func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
 
 	return f
 }
+
+type valueType int
+
+func (v valueType) LeftBracket() string {
+	switch v {
+	case valueTypePlain:
+		return ""
+	case valueTypeObject:
+		return "{\n"
+	case valueTypeArray:
+		return "[\n"
+	default:
+		panic("undefined value type")
+	}
+}
+
+func (v valueType) RightBracket() string {
+	switch v {
+	case valueTypePlain:
+		return ""
+	case valueTypeObject:
+		return "}"
+	case valueTypeArray:
+		return "]"
+	default:
+		panic("undefined value type")
+	}
+}
+
+const (
+	valueTypePlain = iota
+	valueTypeObject
+	valueTypeArray
+)
 
 func (f Formatter) Format(before any, jsonpatch any) error {
 	beforePatchTestSeries := asPatchTestSeries(before, jsonpointer.NewPointer())
@@ -138,6 +168,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 		if !currentPath.IsEmpty() && !isArray {
 			currentKey = fmt.Sprintf("%s%s%s%s", f.keyQuote, currentPath[len(currentPath)-1], f.keyQuote, f.keyValueSeparator)
 		}
+		withKey := !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey
 
 		switch op.Operation {
 		case jsonpatch.OperationTest:
@@ -156,9 +187,15 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 				}
 
 				hasChange = true
-				fmt.Fprintf(f.w, "%s  %s%s{\n", preDiffMarkerIndent, indent, currentKey)
-				fmt.Fprint(f.w, buf.String())
-				fmt.Fprintf(f.w, "%s  %s%s", preDiffMarkerIndent, indent, "}")
+				f.printOp(printOpConfig{
+					preDiffMarkerIndent: preDiffMarkerIndent,
+					indent:              indent,
+					key:                 currentKey,
+					value:               buf.String(),
+					valType:             valueTypeObject,
+					opType:              op.Operation,
+					withKey:             true,
+				})
 
 			case []any:
 				buf := &bytes.Buffer{}
@@ -174,34 +211,55 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 				}
 
 				hasChange = true
-				fmt.Fprintf(f.w, "%s  %s%s[\n", preDiffMarkerIndent, indent, currentKey)
-				fmt.Fprint(f.w, buf.String())
-				fmt.Fprintf(f.w, "%s  %s%s", preDiffMarkerIndent, indent, "]")
+				f.printOp(printOpConfig{
+					preDiffMarkerIndent: preDiffMarkerIndent,
+					indent:              indent,
+					key:                 currentKey,
+					value:               buf.String(),
+					valType:             valueTypeArray,
+					opType:              op.Operation,
+					withKey:             true,
+				})
 
 			default:
 				if f.hideUnchanged && !isArray {
 					unchangedAttributes++
 					continue
 				}
-				fmt.Fprintf(f.w, "%s  %s%s", preDiffMarkerIndent, indent, currentKey)
-				v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), "  ")
-				fmt.Fprintf(f.w, "%s", v)
+
+				v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(op.Operation))
+				f.printOp(printOpConfig{
+					preDiffMarkerIndent: preDiffMarkerIndent,
+					indent:              indent,
+					key:                 currentKey,
+					value:               v,
+					opType:              op.Operation,
+					withKey:             true,
+				})
 			}
 		case jsonpatch.OperationAdd:
 			hasChange = true
-			if !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey {
-				fmt.Fprintf(f.w, f.c.Color("%s[bold][green]+[reset] %s%s"), preDiffMarkerIndent, indent, currentKey)
-			}
-			v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), f.c.Color("[bold][green]+[reset] "))
-			fmt.Fprintf(f.w, "%s", v)
+			v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(op.Operation))
+			f.printOp(printOpConfig{
+				preDiffMarkerIndent: preDiffMarkerIndent,
+				indent:              indent,
+				key:                 currentKey,
+				value:               v,
+				opType:              op.Operation,
+				withKey:             withKey,
+			})
 
 		case jsonpatch.OperationRemove:
 			hasChange = true
-			if !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey {
-				fmt.Fprintf(f.w, f.c.Color("%s[bold][red]-[reset] %s%s"), preDiffMarkerIndent, indent, currentKey)
-			}
-			v := f.formatIndent(op.OldValue, strings.Repeat(f.indentation, len(currentPath)), f.c.Color("[bold][red]-[reset] "))
-			fmt.Fprintf(f.w, "%s", v)
+			v := f.formatIndent(op.OldValue, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(op.Operation))
+			f.printOp(printOpConfig{
+				preDiffMarkerIndent: preDiffMarkerIndent,
+				indent:              indent,
+				key:                 currentKey,
+				value:               v,
+				opType:              op.Operation,
+				withKey:             withKey,
+			})
 
 		case jsonpatch.OperationReplace:
 			hasChange = true
@@ -212,34 +270,91 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 				}
 			}
 
-			vold := f.formatIndent(op.OldValue, strings.Repeat(f.indentation, len(currentPath)), f.c.Color("[bold][red]-[reset] "))
-			v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), f.c.Color("[bold][green]+[reset] "))
-
-			if f.singleLineReplace {
-				if !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey {
-					fmt.Fprintf(f.w, f.c.Color("%s[bold][yellow]~[reset] %s%s"), preDiffMarkerIndent, indent, currentKey)
-				}
-				fmt.Fprintf(f.w, f.c.Color("%s %s %s\n"), vold, f.c.Color(f.singleLineReplaceTransitionIndicator), v)
-				continue
-			}
-
-			if !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey {
-				fmt.Fprintf(f.w, f.c.Color("%s[bold][red]-[reset] %s%s"), preDiffMarkerIndent, indent, currentKey)
-			}
-			fmt.Fprintf(f.w, "%s%s\n", vold, f.printCommaOrNot(i, patch, op))
-			if !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey {
-				fmt.Fprintf(f.w, f.c.Color("%s[bold][green]+[reset] %s%s"), preDiffMarkerIndent, indent, currentKey)
-			}
-			fmt.Fprintf(f.w, "%s", v)
+			vold := f.formatIndent(op.OldValue, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(jsonpatch.OperationRemove))
+			v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(jsonpatch.OperationAdd))
+			f.printOp(printOpConfig{
+				preDiffMarkerIndent: preDiffMarkerIndent,
+				indent:              indent,
+				key:                 currentKey,
+				value:               v,
+				valueOld:            vold,
+				valueOldComma:       f.printCommaOrNot(i, patch, op),
+				opType:              op.Operation,
+				withKey:             withKey,
+			})
 		}
 		fmt.Fprintln(f.w, f.printCommaOrNot(i, patch, op))
 	}
 
 	if unchangedAttributes > 0 {
-		fmt.Fprintf(f.w, f.c.Color("%s%s  [dark_gray]# (%d unchanged attribute hidden)[reset]\n"), preDiffMarkerIndent, indent, unchangedAttributes)
+		unchanged := f.c.darkGrey(fmt.Sprintf("# (%d unchanged attribute hidden)", unchangedAttributes))
+		fmt.Fprintf(f.w, "%s%s  %s\n", preDiffMarkerIndent, indent, unchanged)
 	}
 
 	return i, hasChange
+}
+
+type printOpConfig struct {
+	preDiffMarkerIndent string
+	indent              string
+	key                 string
+	value               string
+	valueOld            string
+	valueOldComma       string
+	valType             valueType
+	opType              jsonpatch.OperationType
+	withKey             bool
+}
+
+func (f Formatter) printOp(cfg printOpConfig) {
+	if cfg.opType == jsonpatch.OperationReplace && !f.singleLineReplace {
+		f.printOp(printOpConfig{
+			preDiffMarkerIndent: cfg.preDiffMarkerIndent,
+			indent:              cfg.indent,
+			key:                 cfg.key,
+			value:               cfg.valueOld,
+			valType:             cfg.valType,
+			opType:              jsonpatch.OperationRemove,
+			withKey:             cfg.withKey,
+		})
+		fmt.Fprintf(f.w, "%s\n", cfg.valueOldComma)
+		f.printOp(printOpConfig{
+			preDiffMarkerIndent: cfg.preDiffMarkerIndent,
+			indent:              cfg.indent,
+			key:                 cfg.key,
+			value:               cfg.value,
+			valType:             cfg.valType,
+			opType:              jsonpatch.OperationAdd,
+			withKey:             cfg.withKey,
+		})
+		return
+	}
+
+	if cfg.withKey {
+		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, f.opTypeIndicator(cfg.opType), cfg.indent, cfg.key, cfg.valType.LeftBracket())
+	}
+	if cfg.valueOld != "" {
+		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.c.bold(f.singleLineReplaceTransitionIndicator)))
+	}
+	fmt.Fprint(f.w, cfg.value)
+	if cfg.valType.RightBracket() != "" {
+		fmt.Fprintf(f.w, "%s  %s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.RightBracket())
+	}
+}
+
+func (f Formatter) opTypeIndicator(opType jsonpatch.OperationType) string {
+	switch opType {
+	case jsonpatch.OperationTest:
+		return " "
+	case jsonpatch.OperationAdd:
+		return f.c.green(f.c.bold("+"))
+	case jsonpatch.OperationRemove:
+		return f.c.red(f.c.bold("-"))
+	case jsonpatch.OperationReplace:
+		return f.c.yellow(f.c.bold("~"))
+	default:
+		panic("not supported operation type")
+	}
 }
 
 func (f Formatter) processJSONInJSON(op jsonpatch.Operation, currentPath jsonpointer.Pointer, preDiffMarkerIndent, indent, currentKey string) bool {
@@ -289,12 +404,17 @@ func (f Formatter) processJSONInJSON(op jsonpatch.Operation, currentPath jsonpoi
 		return false
 	}
 
-	if !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey {
-		fmt.Fprintf(f.w, f.c.Color("%s[bold][yellow]~[reset] %s%s"), preDiffMarkerIndent, indent, currentKey)
-	}
-	fmt.Fprint(f.w, "jsonencode(\n")
-	fmt.Fprintf(f.w, "%s  %s%s", preDiffMarkerIndent+f.indentation, indent, bytes.Trim(buf.Bytes(), " "))
-	fmt.Fprintf(f.w, "%s%s  )\n", preDiffMarkerIndent, indent)
+	withKey := !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey
+	v := fmt.Sprintf("jsonencode(\n%s%s  %s%s%[1]s%[3]s  )\n", preDiffMarkerIndent, f.indentation, indent, strings.Trim(buf.String(), " "))
+	f.printOp(printOpConfig{
+		preDiffMarkerIndent: preDiffMarkerIndent,
+		indent:              indent,
+		key:                 currentKey,
+		value:               v,
+		opType:              jsonpatch.OperationReplace,
+		withKey:             withKey,
+	})
+
 	return true
 }
 
@@ -324,11 +444,13 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 			v := vt[k]
 			if !f.indentedDiffMarkers {
 				sb.WriteString(operation)
+				sb.WriteString(" ")
 			}
 			sb.WriteString(f.prefix + prefix)
 			sb.WriteString(f.indentation)
 			if f.indentedDiffMarkers {
 				sb.WriteString(operation)
+				sb.WriteString(" ")
 			}
 			sb.WriteString(f.keyQuote)
 			sb.WriteString(k)
@@ -353,11 +475,13 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 		for i, v := range vt {
 			if !f.indentedDiffMarkers {
 				sb.WriteString(operation)
+				sb.WriteString(" ")
 			}
 			sb.WriteString(f.prefix + prefix)
 			sb.WriteString(f.indentation)
 			if f.indentedDiffMarkers {
 				sb.WriteString(operation)
+				sb.WriteString(" ")
 			}
 			sb.WriteString(f.formatIndent(v, prefix+f.indentation, operation))
 			if f.commas && i < len(vt)-1 {

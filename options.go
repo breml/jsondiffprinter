@@ -4,7 +4,7 @@ type Option func(*Formatter)
 
 func WithColor(enabled bool) Option {
 	return func(f *Formatter) {
-		f.c.Disable = !enabled
+		f.c.disable = !enabled
 	}
 }
 

@@ -24,6 +24,6 @@ func Error(t *testing.T, err error) {
 func Equal(t *testing.T, want, got any) {
 	t.Helper()
 	if !reflect.DeepEqual(want, got) {
-		t.Fatalf("unexpected value: want %v, got %v", want, got)
+		t.Fatalf("unexpected value: want:\n%v, got:\n%v", want, got)
 	}
 }
