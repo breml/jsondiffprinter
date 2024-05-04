@@ -103,6 +103,6 @@ func main() {
 
 func die(err error) {
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }

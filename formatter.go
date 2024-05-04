@@ -496,6 +496,7 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 		return sb.String()
 
 	default:
+		var jsonEncode bool
 		if str, ok := vt.(string); ok && f.jsonInJSONComparer != nil {
 			var jInjMap map[string]any
 			var jInjArray map[string]any
@@ -505,18 +506,28 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 
 			if mapErr == nil {
 				vt = jInjMap
+				jsonEncode = true
 			}
 			if arrayErr == nil {
 				vt = jInjArray
+				jsonEncode = true
 			}
 		}
 		sb := strings.Builder{}
 		encoder := json.NewEncoder(&sb)
-		encoder.SetIndent(f.prefix+prefix, f.indentation)
+		jsonInJSONPrefix := f.prefix + prefix + "  "
+		if jsonEncode {
+			jsonInJSONPrefix += f.indentation
+			sb.WriteString("jsonencode(\n" + jsonInJSONPrefix)
+		}
+		encoder.SetIndent(jsonInJSONPrefix, f.indentation)
 		encoder.SetEscapeHTML(false)
 		err := encoder.Encode(vt)
 		if err != nil {
 			return fmt.Sprintf("<format error> %v%s%v", vt, f.keyValueSeparator, err)
+		}
+		if jsonEncode {
+			sb.WriteString(f.prefix + prefix + "  " + ")")
 		}
 
 		return strings.Trim(sb.String(), " \n")

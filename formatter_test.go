@@ -114,6 +114,7 @@ func TestFormatter(t *testing.T) {
 			}
 
 			for _, formatter := range formatters {
+				formatter := formatter
 				t.Run(formatter.name, func(t *testing.T) {
 					jsonInJSONInvocation = 0
 					buf.Reset()
