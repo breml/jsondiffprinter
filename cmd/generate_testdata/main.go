@@ -83,7 +83,7 @@ func main() {
 
 			patchFile := txtar.File{
 				Name: fmt.Sprintf("jsonInJSON.%d.json", i),
-				Data: patchData,
+				Data: append(patchData, '\n'),
 			}
 
 			txtarchive.Files = append(txtarchive.Files, patchFile)

@@ -379,13 +379,14 @@ func (f Formatter) processJSONInJSON(op jsonpatch.Operation, currentPath jsonpoi
 	valueArrayErr := json.Unmarshal([]byte(value), &valuejInjArray)
 
 	var oldVal, val any
-	if oldValueMapErr == nil && valueMapErr == nil {
+	switch {
+	case oldValueMapErr == nil && valueMapErr == nil:
 		oldVal = oldValuejInjMap
 		val = valuejInjMap
-	} else if oldValueArrayErr == nil && valueArrayErr == nil {
+	case oldValueArrayErr == nil && valueArrayErr == nil:
 		oldVal = oldValuejInjArray
 		val = valuejInjArray
-	} else {
+	default:
 		return false
 	}
 

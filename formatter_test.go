@@ -33,8 +33,6 @@ func TestFormatter(t *testing.T) {
 	for _, filename := range files {
 		filename := filename
 		t.Run(filename, func(t *testing.T) {
-			t.Parallel()
-
 			txtar, err := txtar.ParseFile(filename)
 			require.NoError(t, err)
 
