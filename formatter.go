@@ -344,15 +344,15 @@ func (f Formatter) printOp(cfg printOpConfig) {
 	}
 
 	eol := ""
-	if cfg.op.Note != "" {
-		eol = " # " + cfg.op.Note
+	if cfg.op.Metadata["comment"] != "" {
+		eol = " # " + cfg.op.Metadata["comment"]
 	}
 	if len(cfg.valType.LeftBracket()) > 0 {
 		eol = cfg.valType.LeftBracket() + eol + "\n"
 	}
 	opTypeIndicator := f.opTypeIndicator(cfg.op.Operation)
-	if cfg.op.OperationOverride != "" {
-		opTypeIndicator = f.opTypeIndicator(cfg.op.OperationOverride)
+	if cfg.op.Metadata["operationOverride"] != "" {
+		opTypeIndicator = f.opTypeIndicator(jsonpatch.OperationType(cfg.op.Metadata["operationOverride"]))
 	}
 
 	if cfg.withKey {

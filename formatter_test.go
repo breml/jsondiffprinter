@@ -11,6 +11,7 @@ import (
 
 	"github.com/breml/jsondiffprinter"
 	"github.com/breml/jsondiffprinter/internal/jsonpatch"
+	"github.com/breml/jsondiffprinter/internal/jsonpointer"
 	"github.com/breml/jsondiffprinter/internal/require"
 )
 
@@ -24,8 +25,9 @@ type metadata struct {
 	Terraform struct {
 		Indentation   *string `json:"indentation"`
 		HideUnchanged *bool   `json:"hideUnchanged"`
-		NoteAdder     *bool   `json:"noteAdder"`
+		MetadataAdder *bool   `json:"metadataAdder"`
 	} `json:"terraform"`
+	Metadata map[string]map[string]string `json:"metadata"`
 }
 
 func TestFormatter(t *testing.T) {
@@ -94,8 +96,8 @@ func TestFormatter(t *testing.T) {
 				terraformOptions = append(terraformOptions, jsondiffprinter.WithHideUnchanged(*metadata.Terraform.HideUnchanged))
 			}
 
-			if metadata.Terraform.NoteAdder != nil {
-				terraformOptions = append(terraformOptions, jsondiffprinter.WithPatchSeriesPostProcess(noteAdder))
+			if metadata.Terraform.MetadataAdder != nil {
+				terraformOptions = append(terraformOptions, jsondiffprinter.WithPatchSeriesPostProcess(metadataByJSONPointer(t, metadata.Metadata)))
 			}
 
 			var buf bytes.Buffer
@@ -146,11 +148,18 @@ func txtarFileByName(t *testing.T, txtar *txtar.Archive, name string) *txtar.Fil
 	return nil
 }
 
-// FIXME: make this generic, such that a structure `replace_paths`
-// from the Terraform plan.json can be provided.
-func noteAdder(diff jsonpatch.Patch) jsonpatch.Patch {
-	diff[2].OperationOverride = jsonpatch.OperationReplace
-	diff[2].Note = "forces replacement"
+func metadataByJSONPointer(t *testing.T, metadata map[string]map[string]string) func(diff jsonpatch.Patch) jsonpatch.Patch {
+	return func(diff jsonpatch.Patch) jsonpatch.Patch {
+		for path, value := range metadata {
+			ptr := jsonpointer.NewPointerFromPath(path)
+			i, found := jsondiffprinter.FindPatchIndex(diff, ptr)
+			if !found {
+				t.Errorf("path %q not found in diff", path)
+			}
+			diff[i].Metadata = value
 
-	return diff
+		}
+
+		return diff
+	}
 }

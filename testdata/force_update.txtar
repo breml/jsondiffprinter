@@ -1,6 +1,12 @@
 {
   "terraform": {
-    "noteAdder": true
+    "metadataAdder": true
+  },
+  "metadata": {
+    "/triggers": {
+      "comment": "forces replacement",
+      "operationOverride": "replace"
+    }
   }
 }
 -- before.json --

@@ -58,9 +58,7 @@ type Operation struct {
 	// From string `json:"from,omitempty"`
 	Path jsonpointer.Pointer `json:"path"`
 
-	// FIXME: Should this be a "generic" meta data map[string]any?
-	OperationOverride OperationType
-	Note              string
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func (o Operation) GoString() string {

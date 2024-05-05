@@ -27,9 +27,10 @@ type metadata struct {
 	Terraform *struct {
 		Indentation   *string `json:"indentation,omitempty"`
 		HideUnchanged *bool   `json:"hideUnchanged,omitempty"`
-		NoteAdder     *bool   `json:"noteAdder,omitempty"`
+		MetadataAdder *bool   `json:"metadataAdder,omitempty"`
 	} `json:"terraform,omitempty"`
-	JSONInJSON []string `json:"jsonInJSON,omitempty"`
+	Metadata   map[string]map[string]any `json:"metadata,omitempty"`
+	JSONInJSON []string                  `json:"jsonInJSON,omitempty"`
 }
 
 func main() {
