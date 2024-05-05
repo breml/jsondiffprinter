@@ -3,24 +3,15 @@ package jsondiffprinter
 import "fmt"
 
 const (
-	colorReset     = "\033[0m"
-	colorBold      = "\033[1m"
-	colorResetBold = "\033[21m"
-	colorRed       = "\033[31m"
-	colorGreen     = "\033[32m"
-	colorYellow    = "\033[33m"
-	colorDarkGrey  = "\033[90m"
+	colorReset    = "\033[0m"
+	colorRed      = "\033[31m"
+	colorGreen    = "\033[32m"
+	colorYellow   = "\033[33m"
+	colorDarkGrey = "\033[90m"
 )
 
 type colorize struct {
 	disable bool
-}
-
-func (c colorize) bold(str string) string {
-	if c.disable {
-		return str
-	}
-	return fmt.Sprintf("%s%s%s", colorBold, str, colorResetBold)
 }
 
 func (c colorize) red(str string) string {

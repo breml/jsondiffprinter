@@ -334,7 +334,7 @@ func (f Formatter) printOp(cfg printOpConfig) {
 		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, f.opTypeIndicator(cfg.opType), cfg.indent, cfg.key, cfg.valType.LeftBracket())
 	}
 	if cfg.valueOld != "" {
-		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.c.bold(f.singleLineReplaceTransitionIndicator)))
+		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.singleLineReplaceTransitionIndicator))
 	}
 	fmt.Fprint(f.w, cfg.value)
 	if cfg.valType.RightBracket() != "" {
@@ -347,11 +347,11 @@ func (f Formatter) opTypeIndicator(opType jsonpatch.OperationType) string {
 	case jsonpatch.OperationTest:
 		return " "
 	case jsonpatch.OperationAdd:
-		return f.c.green(f.c.bold("+"))
+		return f.c.green("+")
 	case jsonpatch.OperationRemove:
-		return f.c.red(f.c.bold("-"))
+		return f.c.red("-")
 	case jsonpatch.OperationReplace:
-		return f.c.yellow(f.c.bold("~"))
+		return f.c.yellow("~")
 	default:
 		panic("not supported operation type")
 	}
