@@ -18,7 +18,18 @@ import (
 const basePath = "../../testdata"
 
 type metadata struct {
-	JSONInJSON []string `json:"jsonInJSON"`
+	JSON *struct {
+		Indentation         *string `json:"indentation,omitempty"`
+		IndentedDiffMarkers *bool   `json:"indentedDiffMarkers,omitempty"`
+		Commas              *bool   `json:"commas,omitempty"`
+		HideUnchanged       *bool   `json:"hideUnchanged,omitempty"`
+	} `json:"json,omitempty"`
+	Terraform *struct {
+		Indentation   *string `json:"indentation,omitempty"`
+		HideUnchanged *bool   `json:"hideUnchanged,omitempty"`
+		NoteAdder     *bool   `json:"noteAdder,omitempty"`
+	} `json:"terraform,omitempty"`
+	JSONInJSON []string `json:"jsonInJSON,omitempty"`
 }
 
 func main() {
@@ -89,7 +100,12 @@ func main() {
 			txtarchive.Files = append(txtarchive.Files, patchFile)
 		}
 
+		metadata.JSONInJSON = nil
+		txtarchive.Comment, err = json.MarshalIndent(metadata, "", "  ")
+		die(err)
+
 		buf2 := bytes.Buffer{}
+		buf2.WriteString(string(txtarchive.Comment) + "\n")
 		for _, f := range txtarchive.Files {
 			buf2.WriteString("-- " + f.Name + " --\n")
 			buf2.WriteString(string(f.Data))
