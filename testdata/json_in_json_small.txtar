@@ -1,0 +1,26 @@
+-- before.json --
+{
+  "delete": "{\"key\":\"value\"}"
+}
+-- after.json --
+{
+  "add": "{\"key\":\"value\"}"
+}
+-- diff.json --
+  {
++   "add": "{\"key\":\"value\"}",
+-   "delete": "{\"key\":\"value\"}"
+  }
+-- diff.tf --
+  {
+  + add = jsonencode(
+      {
+        "key": "value"
+      }
+    )
+  - delete = jsonencode(
+      {
+        "key": "value"
+      }
+    )
+  }

@@ -1,0 +1,8 @@
+-- before.json --
+"foobar"
+-- after.json --
+null
+-- diff.json --
+- "foobar"
+-- diff.tf --
+"foobar"

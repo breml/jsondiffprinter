@@ -57,6 +57,8 @@ type Operation struct {
 	// FIXME: From is not used by this package as of now, since we do not support move and copy operations.
 	// From string `json:"from,omitempty"`
 	Path jsonpointer.Pointer `json:"path"`
+
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func (o Operation) GoString() string {

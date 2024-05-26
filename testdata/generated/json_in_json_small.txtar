@@ -1,0 +1,35 @@
+{}
+-- before.json --
+{
+  "delete": "{\"key\":\"value\"}"
+}
+-- patch.json --
+[
+  {
+    "value": "{\"key\":\"value\"}",
+    "op": "add",
+    "path": "/add"
+  },
+  {
+    "op": "remove",
+    "path": "/delete"
+  }
+]
+-- diff.json --
+  {
++   "add": "{\"key\":\"value\"}",
+-   "delete": "{\"key\":\"value\"}"
+  }
+-- diff.tf --
+  {
+  + add = jsonencode(
+      {
+        "key": "value"
+      }
+    )
+  - delete = jsonencode(
+      {
+        "key": "value"
+      }
+    )
+  }

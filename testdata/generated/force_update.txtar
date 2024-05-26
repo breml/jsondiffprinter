@@ -1,0 +1,47 @@
+{
+  "terraform": {
+    "metadataAdder": true
+  },
+  "metadata": {
+    "/triggers": {
+      "comment": "forces replacement",
+      "operationOverride": "replace"
+    }
+  }
+}
+-- before.json --
+{
+  "id": "1",
+  "triggers": {
+      "foo": "bar"
+  }
+}
+-- patch.json --
+[
+  {
+    "value": "\u003cknown after\u003e",
+    "op": "replace",
+    "path": "/id"
+  },
+  {
+    "value": "baz",
+    "op": "replace",
+    "path": "/triggers/foo"
+  }
+]
+-- diff.json --
+  {
+-   "id": "1",
++   "id": "<known after>",
+    "triggers": {
+-     "foo": "bar"
++     "foo": "baz"
+    }
+  }
+-- diff.tf --
+  {
+  ~ id = "1" -> "<known after>"
+  ~ triggers = { # forces replacement
+    ~ foo = "bar" -> "baz"
+    }
+  }

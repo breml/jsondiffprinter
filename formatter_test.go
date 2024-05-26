@@ -10,6 +10,8 @@ import (
 	"golang.org/x/tools/txtar"
 
 	"github.com/breml/jsondiffprinter"
+	"github.com/breml/jsondiffprinter/internal/jsonpatch"
+	"github.com/breml/jsondiffprinter/internal/jsonpointer"
 	"github.com/breml/jsondiffprinter/internal/require"
 )
 
@@ -23,7 +25,9 @@ type metadata struct {
 	Terraform struct {
 		Indentation   *string `json:"indentation"`
 		HideUnchanged *bool   `json:"hideUnchanged"`
+		MetadataAdder *bool   `json:"metadataAdder"`
 	} `json:"terraform"`
+	Metadata map[string]map[string]string `json:"metadata"`
 }
 
 func TestFormatter(t *testing.T) {
@@ -33,8 +37,6 @@ func TestFormatter(t *testing.T) {
 	for _, filename := range files {
 		filename := filename
 		t.Run(filename, func(t *testing.T) {
-			t.Parallel()
-
 			txtar, err := txtar.ParseFile(filename)
 			require.NoError(t, err)
 
@@ -94,6 +96,10 @@ func TestFormatter(t *testing.T) {
 				terraformOptions = append(terraformOptions, jsondiffprinter.WithHideUnchanged(*metadata.Terraform.HideUnchanged))
 			}
 
+			if metadata.Terraform.MetadataAdder != nil {
+				terraformOptions = append(terraformOptions, jsondiffprinter.WithPatchSeriesPostProcess(metadataByJSONPointer(t, metadata.Metadata)))
+			}
+
 			var buf bytes.Buffer
 			formatters := []struct {
 				name      string
@@ -114,6 +120,7 @@ func TestFormatter(t *testing.T) {
 			}
 
 			for _, formatter := range formatters {
+				formatter := formatter
 				t.Run(formatter.name, func(t *testing.T) {
 					jsonInJSONInvocation = 0
 					buf.Reset()
@@ -139,4 +146,20 @@ func txtarFileByName(t *testing.T, txtar *txtar.Archive, name string) *txtar.Fil
 
 	t.Fatalf("file %q not found", name)
 	return nil
+}
+
+func metadataByJSONPointer(t *testing.T, metadata map[string]map[string]string) func(diff jsonpatch.Patch) jsonpatch.Patch {
+	return func(diff jsonpatch.Patch) jsonpatch.Patch {
+		for path, value := range metadata {
+			ptr := jsonpointer.NewPointerFromPath(path)
+			i, found := jsondiffprinter.FindPatchIndex(diff, ptr)
+			if !found {
+				t.Errorf("path %q not found in diff", path)
+			}
+			diff[i].Metadata = value
+
+		}
+
+		return diff
+	}
 }
