@@ -13,21 +13,27 @@ import (
 )
 
 const (
-	KeyValueSeparatorJSON      = `: `
-	KeyValueSeparatorTerraform = ` = `
+	keyValueSeparatorJSON      = `: `
+	keyValueSeparatorTerraform = ` = `
 
-	KeyQuoteJSON      = `"`
-	KeyQuoteTerraform = ``
+	keyQuoteJSON      = `"`
+	keyQuoteTerraform = ``
 
-	SingleLineReplaceIndicatorTerraform = `~`
+	singleLineReplaceIndicatorTerraform = `~`
 
-	SingleLineReplaceTransitionIndicatorTerraform = `->`
+	singleLineReplaceTransitionIndicatorTerraform = `->`
 )
 
+// A Comparer compares two JSON documents and returns a JSON patch that
+// transforms the first document into the second document.
 type Comparer func(before, after any) ([]byte, error)
 
+// A PatchSeriesPostProcessor processes the JSON patch series before the
+// diff is printed. It can be used to modify the diff before it is printed.
 type PatchSeriesPostProcessor func(diff jsonpatch.Patch) jsonpatch.Patch
 
+// Formatter formats the diff if the given JSON patch is applied to the given
+// JSON document.
 type Formatter struct {
 	w io.Writer
 	c colorize
@@ -47,6 +53,7 @@ type Formatter struct {
 	patchSeriesPostProcess               PatchSeriesPostProcessor
 }
 
+// NewJSONFormatter creates a new JSON formatter.
 func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
 	f := Formatter{
 		w: w,
@@ -56,8 +63,8 @@ func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
 
 		indentation:       "  ",
 		commas:            true,
-		keyValueSeparator: KeyValueSeparatorJSON,
-		keyQuote:          KeyQuoteJSON,
+		keyValueSeparator: keyValueSeparatorJSON,
+		keyQuote:          keyQuoteJSON,
 	}
 
 	for _, option := range options {
@@ -67,6 +74,7 @@ func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
 	return f
 }
 
+// NewTerraformFormatter creates a new Terraform formatter.
 func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
 	f := Formatter{
 		w: w,
@@ -77,11 +85,11 @@ func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
 		indentation:                          "    ",
 		indentedDiffMarkers:                  true,
 		commas:                               false,
-		keyValueSeparator:                    KeyValueSeparatorTerraform,
-		keyQuote:                             KeyQuoteTerraform,
+		keyValueSeparator:                    keyValueSeparatorTerraform,
+		keyQuote:                             keyQuoteTerraform,
 		singleLineReplace:                    true,
-		singleLineReplaceIndicator:           SingleLineReplaceIndicatorTerraform,
-		singleLineReplaceTransitionIndicator: SingleLineReplaceTransitionIndicatorTerraform,
+		singleLineReplaceIndicator:           singleLineReplaceIndicatorTerraform,
+		singleLineReplaceTransitionIndicator: singleLineReplaceTransitionIndicatorTerraform,
 		hideUnchanged:                        true,
 		omitChangeIndicatorOnEmptyKey:        true,
 	}
@@ -95,7 +103,7 @@ func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
 
 type valueType int
 
-func (v valueType) LeftBracket() string {
+func (v valueType) leftBracket() string {
 	switch v {
 	case valueTypePlain:
 		return ""
@@ -108,7 +116,7 @@ func (v valueType) LeftBracket() string {
 	}
 }
 
-func (v valueType) RightBracket() string {
+func (v valueType) rightBracket() string {
 	switch v {
 	case valueTypePlain:
 		return ""
@@ -127,6 +135,7 @@ const (
 	valueTypeArray
 )
 
+// Format formats the JSON patch.
 func (f Formatter) Format(before any, jsonpatch any) error {
 	beforePatchTestSeries := asPatchTestSeries(before, jsonpointer.NewPointer())
 	patch, err := patchFromAny(jsonpatch)
@@ -347,8 +356,8 @@ func (f Formatter) printOp(cfg printOpConfig) {
 	if cfg.op.Metadata["comment"] != "" {
 		eol = " # " + cfg.op.Metadata["comment"]
 	}
-	if len(cfg.valType.LeftBracket()) > 0 {
-		eol = cfg.valType.LeftBracket() + eol + "\n"
+	if len(cfg.valType.leftBracket()) > 0 {
+		eol = cfg.valType.leftBracket() + eol + "\n"
 	}
 	opTypeIndicator := f.opTypeIndicator(cfg.op.Operation)
 	if cfg.op.Metadata["operationOverride"] != "" {
@@ -362,8 +371,8 @@ func (f Formatter) printOp(cfg printOpConfig) {
 		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.singleLineReplaceTransitionIndicator))
 	}
 	fmt.Fprint(f.w, cfg.value)
-	if cfg.valType.RightBracket() != "" {
-		fmt.Fprintf(f.w, "%s  %s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.RightBracket())
+	if cfg.valType.rightBracket() != "" {
+		fmt.Fprintf(f.w, "%s  %s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.rightBracket())
 	}
 }
 

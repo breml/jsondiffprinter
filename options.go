@@ -1,5 +1,6 @@
 package jsondiffprinter
 
+// Option is a function that sets an option on the formatter.
 type Option func(*Formatter)
 
 // WithColor provides an option for the formatter to enable or disable
@@ -56,6 +57,8 @@ func WithJSONinJSONCompare(jsonInJSONComparer Comparer) Option {
 	}
 }
 
+// WithPatchSeriesPostProcess provides an option for the formatter to set the
+// post processor to use when processing the patch series.
 func WithPatchSeriesPostProcess(patchSeriesPostProcess PatchSeriesPostProcessor) Option {
 	return func(f *Formatter) {
 		f.patchSeriesPostProcess = patchSeriesPostProcess
