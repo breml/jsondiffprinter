@@ -9,9 +9,17 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+
+	mianxiang "github.com/520MianXiangDuiXiang520/json-diff"
+	victorlowther "github.com/VictorLowther/jsonpatch2"
+	cameront "github.com/cameront/go-jsonpatch"
+	herkyl "github.com/herkyl/patchwerk"
+	mattbaird "github.com/mattbaird/jsonpatch"
+	snorwin "github.com/snorwin/jsonpatch"
+	wI2L "github.com/wI2L/jsondiff"
 
 	"github.com/qri-io/jsonpointer"
-	"github.com/wI2L/jsondiff"
 	"golang.org/x/tools/txtar"
 )
 
@@ -31,6 +39,7 @@ type metadata struct {
 	} `json:"terraform,omitempty"`
 	Metadata   map[string]map[string]any `json:"metadata,omitempty"`
 	JSONInJSON []string                  `json:"jsonInJSON,omitempty"`
+	PatchLib   *string                   `json:"patchLib,omitempty"`
 }
 
 func main() {
@@ -50,24 +59,22 @@ func main() {
 		err = json.Unmarshal(txtarchive.Comment, &metadata)
 		die(err)
 
+		beforeJSON := txtarchive.Files[0].Data
+		afterJSON := txtarchive.Files[1].Data
+
 		var before, after interface{}
-		err = json.Unmarshal(txtarchive.Files[0].Data, &before)
+		err = json.Unmarshal(beforeJSON, &before)
 		die(err)
 
-		err = json.Unmarshal(txtarchive.Files[1].Data, &after)
+		err = json.Unmarshal(afterJSON, &after)
 		die(err)
 
-		patch, err := jsondiff.Compare(before, after)
-		die(err)
+		patchLib := "wI2L"
+		if metadata.PatchLib != nil {
+			patchLib = *metadata.PatchLib
+		}
 
-		buf := bytes.Buffer{}
-		encoder := json.NewEncoder(&buf)
-		encoder.SetIndent("", "  ")
-		encoder.SetEscapeHTML(false)
-		err = encoder.Encode(patch)
-		die(err)
-
-		txtarchive.Files[1].Data = buf.Bytes()
+		txtarchive.Files[1].Data = compare(patchLib, beforeJSON, afterJSON)
 		txtarchive.Files[1].Name = "patch.json"
 
 		for i, pointer := range metadata.JSONInJSON {
@@ -80,18 +87,7 @@ func main() {
 			afterStr, err := ptr.Eval(after)
 			die(err)
 
-			var before, after interface{}
-			err = json.Unmarshal([]byte(beforeStr.(string)), &before)
-			die(err)
-
-			err = json.Unmarshal([]byte(afterStr.(string)), &after)
-			die(err)
-
-			patch, err := jsondiff.Compare(before, after)
-			die(err)
-
-			patchData, err := json.MarshalIndent(patch, "", "  ")
-			die(err)
+			patchData := compare(patchLib, []byte(beforeStr.(string)), []byte(afterStr.(string)))
 
 			patchFile := txtar.File{
 				Name: fmt.Sprintf("jsonInJSON.%d.json", i),
@@ -102,6 +98,7 @@ func main() {
 		}
 
 		metadata.JSONInJSON = nil
+		metadata.PatchLib = nil
 		txtarchive.Comment, err = json.MarshalIndent(metadata, "", "  ")
 		die(err)
 
@@ -116,6 +113,57 @@ func main() {
 		err = os.WriteFile(targetFilename, buf2.Bytes(), 0o644)
 		die(err)
 	}
+}
+
+func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
+	var before, after interface{}
+	err := json.Unmarshal(beforeJSON, &before)
+	die(err)
+
+	err = json.Unmarshal(afterJSON, &after)
+	die(err)
+
+	var marshal bool
+	var patch any
+	switch strings.ToLower(patchLib) {
+	case "cameront":
+		patch, err = cameront.MakePatch(before, after)
+		marshal = true
+	case "herkyl":
+		patch, err = herkyl.Diff(beforeJSON, afterJSON)
+		marshal = true
+	case "mattbaird":
+		patch, err = mattbaird.CreatePatch(beforeJSON, afterJSON)
+		marshal = true
+	case "mianxiang":
+		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
+	case "snorwin":
+		var patchList snorwin.JSONPatchList
+		patchList, err = snorwin.CreateJSONPatch(after, before)
+		patch = patchList.Raw()
+	case "victorlowther":
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, false)
+		marshal = true
+	case "victorlowther-paranoid":
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, true)
+		marshal = true
+	default: // "wI2L"
+		patch, err = wI2L.Compare(before, after)
+		marshal = true
+	}
+	die(err)
+
+	if marshal {
+		buf := bytes.Buffer{}
+		encoder := json.NewEncoder(&buf)
+		encoder.SetIndent("", "  ")
+		encoder.SetEscapeHTML(false)
+		err = encoder.Encode(patch)
+		die(err)
+		patch = buf.Bytes()
+	}
+
+	return patch.([]byte)
 }
 
 func die(err error) {

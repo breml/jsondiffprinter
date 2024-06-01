@@ -5,9 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
-	MianXiangDuiXiang520 "github.com/520MianXiangDuiXiang520/json-diff"
-	victorLowther "github.com/VictorLowther/jsonpatch2"
+	mianxiang "github.com/520MianXiangDuiXiang520/json-diff"
+	victorlowther "github.com/VictorLowther/jsonpatch2"
 	cameront "github.com/cameront/go-jsonpatch"
 	herkyl "github.com/herkyl/patchwerk"
 	mattbaird "github.com/mattbaird/jsonpatch"
@@ -21,7 +22,7 @@ var (
 	// Call it showPatch?
 	debug    = flag.Bool("debug", false, "enable debug output")
 	format   = flag.String("format", "ascii", "output format to use (ascii, terraform)")
-	patchLib = flag.String("patchlib", "wI2L/jsondiff", "patch library to use (wI2L/jsondiff, mattbaird/jsonpatch, herkyl/patchwerk, snorwin/jsonpatch, VictorLowther/jsonpatch2, VictorLowther/jsonpatch2-paranoid, cameront/go-jsonpatch, 520MianXiangDuiXiang520/json-diff)")
+	patchLib = flag.String("patchlib", "wI2L", "patch library to use (cameront, herkyl, mattbaird, MianXiang, snorwin, VictorLowther, VictorLowther-paranoid, wI2L)")
 )
 
 func main() {
@@ -61,26 +62,26 @@ func run(args []string) error {
 	}
 
 	var patch any
-	switch *patchLib {
-	case "wI2L/jsondiff":
-		patch, err = wI2L.Compare(before, after)
-	case "mattbaird/jsonpatch":
-		patch, err = mattbaird.CreatePatch(beforeJSON, afterJSON)
-	case "herkyl/patchwerk":
+	switch strings.ToLower(*patchLib) {
+	case "cameront":
+		patch, err = cameront.MakePatch(before, after)
+	case "herkyl":
 		patch, err = herkyl.Diff(beforeJSON, afterJSON)
-	case "snorwin/jsonpatch":
+	case "mattbaird":
+		patch, err = mattbaird.CreatePatch(beforeJSON, afterJSON)
+	case "mianxiang":
+		// TODO: consider options offered by 520MianXiangDuiXiang520/json-diff
+		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
+	case "snorwin":
 		var patchList snorwin.JSONPatchList
 		patchList, err = snorwin.CreateJSONPatch(after, before)
 		patch = patchList.Raw()
-	case "VictorLowther/jsonpatch2":
-		patch, err = victorLowther.Generate(beforeJSON, afterJSON, false)
-	case "VictorLowther/jsonpatch2-paranoid":
-		patch, err = victorLowther.Generate(beforeJSON, afterJSON, true)
-	case "cameront/go-jsonpatch":
-		patch, err = cameront.MakePatch(before, after)
-	case "520MianXiangDuiXiang520/json-diff":
-		// TODO: consider options offered by 520MianXiangDuiXiang520/json-diff
-		patch, err = MianXiangDuiXiang520.AsDiffs(beforeJSON, afterJSON)
+	case "victorlowther":
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, false)
+	case "victorlowther-paranoid":
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, true)
+	default: // "wI2L"
+		patch, err = wI2L.Compare(before, after)
 	}
 	if err != nil {
 		return err
