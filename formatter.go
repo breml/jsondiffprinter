@@ -354,27 +354,28 @@ func (f Formatter) printOp(cfg printOpConfig) {
 		return
 	}
 
-	eol := ""
-	if cfg.op.Metadata["note"] != "" {
-		eol = cfg.op.Metadata["note"]
-	}
+	keyNote := ""
+	valueNote := ""
 	if len(cfg.valType.leftBracket()) > 0 {
-		eol = cfg.valType.leftBracket() + eol + "\n"
+		keyNote = cfg.valType.leftBracket() + cfg.op.Metadata["note"] + "\n"
+	} else {
+		valueNote = cfg.op.Metadata["note"]
 	}
+
 	opTypeIndicator := f.opTypeIndicator(cfg.op.Operation)
 	if cfg.op.Metadata["operationOverride"] != "" {
 		opTypeIndicator = f.opTypeIndicator(jsonpatch.OperationType(cfg.op.Metadata["operationOverride"]))
 	}
 
 	if cfg.withKey {
-		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, opTypeIndicator, cfg.indent, cfg.key, eol)
+		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, opTypeIndicator, cfg.indent, cfg.key, keyNote)
 	} else {
 		fmt.Fprint(f.w, "  ")
 	}
 	if cfg.valueOld != "" {
 		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.singleLineReplaceTransitionIndicator))
 	}
-	fmt.Fprint(f.w, cfg.value)
+	fmt.Fprint(f.w, cfg.value, valueNote)
 	if cfg.valType.rightBracket() != "" {
 		fmt.Fprintf(f.w, "%s  %s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.rightBracket())
 	}
@@ -444,7 +445,7 @@ func (f Formatter) processJSONInJSON(op jsonpatch.Operation, currentPath jsonpoi
 	}
 
 	withKey := !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey
-	v := fmt.Sprintf("jsonencode(\n%s%s  %s%s%[1]s%[3]s  )\n", preDiffMarkerIndent, f.indentation, indent, strings.Trim(buf.String(), " "))
+	v := fmt.Sprintf("jsonencode(\n%s%s  %s%s%[1]s%[3]s  )", preDiffMarkerIndent, f.indentation, indent, strings.Trim(buf.String(), " "))
 	opReplace := op
 	opReplace.Operation = jsonpatch.OperationReplace
 	f.printOp(printOpConfig{
@@ -455,6 +456,7 @@ func (f Formatter) processJSONInJSON(op jsonpatch.Operation, currentPath jsonpoi
 		op:                  opReplace,
 		withKey:             withKey,
 	})
+	fmt.Fprint(f.w, "\n")
 
 	return true
 }
