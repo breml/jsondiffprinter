@@ -28,9 +28,11 @@ const (
 // transforms the first document into the second document.
 type Comparer func(before, after any) ([]byte, error)
 
+type Patch = jsonpatch.Patch
+
 // A PatchSeriesPostProcessor processes the JSON patch series before the
 // diff is printed. It can be used to modify the diff before it is printed.
-type PatchSeriesPostProcessor func(diff jsonpatch.Patch) jsonpatch.Patch
+type PatchSeriesPostProcessor func(diff Patch) Patch
 
 // Formatter formats the diff if the given JSON patch is applied to the given
 // JSON document.
@@ -353,8 +355,8 @@ func (f Formatter) printOp(cfg printOpConfig) {
 	}
 
 	eol := ""
-	if cfg.op.Metadata["comment"] != "" {
-		eol = " # " + cfg.op.Metadata["comment"]
+	if cfg.op.Metadata["note"] != "" {
+		eol = cfg.op.Metadata["note"]
 	}
 	if len(cfg.valType.leftBracket()) > 0 {
 		eol = cfg.valType.leftBracket() + eol + "\n"
