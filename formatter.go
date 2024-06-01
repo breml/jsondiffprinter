@@ -618,7 +618,8 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) jsonpatch.Patch {
 func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {
 	deletePath := jsonpointer.Pointer{}
 	res := make(jsonpatch.Patch, 0, len(src)+len(patch))
-	for _, op := range src {
+	for opIndex := 0; opIndex < len(src); opIndex++ {
+		op := src[opIndex]
 		if !deletePath.IsEmpty() && deletePath.IsParentOf(op.Path) {
 			continue
 		}
@@ -685,6 +686,20 @@ func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpat
 		}
 
 		res = append(res, patchop)
+
+		if patchop.Operation == jsonpatch.OperationAdd {
+			res = append(res, op)
+		}
+
+		if patchop.Operation == jsonpatch.OperationRemove && parentIsArray(src, patchop.Path) {
+			for j := opIndex + 1; j < len(src); j++ {
+				if src[j].Path.HasSameAncestorsAs(patchop.Path) {
+					src[j].Path.DecrementIndex()
+					continue
+				}
+				break
+			}
+		}
 	}
 
 	for i := 0; i < len(patch); i++ {
@@ -704,11 +719,21 @@ func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpat
 		return nil, fmt.Errorf("patch is not empty after it has been applied")
 	}
 
-	sort.Slice(res, func(i, j int) bool {
+	sort.SliceStable(res, func(i, j int) bool {
 		return res[i].Path.LessThan(res[j].Path)
 	})
 
 	return res, nil
+}
+
+func parentIsArray(patch jsonpatch.Patch, path jsonpointer.Pointer) bool {
+	for i := range patch {
+		if patch[i].Path.IsParentOf(path) {
+			_, ok := patch[i].Value.([]any)
+			return ok
+		}
+	}
+	return false
 }
 
 func findPatchIndex(patch jsonpatch.Patch, path jsonpointer.Pointer) (int, bool) {

@@ -153,6 +153,7 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 	}
 	die(err)
 
+	var patchData []byte
 	if marshal {
 		buf := bytes.Buffer{}
 		encoder := json.NewEncoder(&buf)
@@ -160,10 +161,13 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 		encoder.SetEscapeHTML(false)
 		err = encoder.Encode(patch)
 		die(err)
-		patch = buf.Bytes()
+		patchData = buf.Bytes()
+	} else {
+		patchData = patch.([]byte)
+		patchData = append(patchData, '\n')
 	}
 
-	return patch.([]byte)
+	return patchData
 }
 
 func die(err error) {
