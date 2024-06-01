@@ -1,0 +1,183 @@
+{}
+-- before.json --
+{
+  "a": 1,
+  "b": {
+      "c": 2,
+      "b1": "a",
+      "b2": "b"
+  },
+  "d": 4,
+  "e": null,
+  "f": [
+      5,
+      6,
+      7
+  ],
+  "j": {
+      "a": 1
+  }
+}
+-- patch.json --
+[
+  {
+    "op": "remove",
+    "path": "/e",
+    "from": "",
+    "value": null
+  },
+  {
+    "op": "replace",
+    "path": "/f",
+    "from": "",
+    "value": [
+      5,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "op": "replace",
+    "path": "/j",
+    "from": "",
+    "value": [
+      true,
+      false
+    ]
+  },
+  {
+    "op": "replace",
+    "path": "/b/c",
+    "from": "",
+    "value": 3
+  },
+  {
+    "op": "remove",
+    "path": "/b/b1",
+    "from": "",
+    "value": null
+  },
+  {
+    "op": "remove",
+    "path": "/b/b2",
+    "from": "",
+    "value": null
+  },
+  {
+    "op": "add",
+    "path": "/g",
+    "from": "",
+    "value": 14
+  },
+  {
+    "op": "add",
+    "path": "/h",
+    "from": "",
+    "value": [
+      1,
+      2,
+      3
+    ]
+  },
+  {
+    "op": "add",
+    "path": "/a1",
+    "from": "",
+    "value": {
+      "1": [
+        1,
+        2,
+        3,
+        true
+      ]
+    }
+  }
+]
+-- diff.json --
+  {
+    "a": 1,
++   "a1": {
++     "1": [
++       1,
++       2,
++       3,
++       true
+      ]
+    },
+    "b": {
+-     "b1": "a",
+-     "b2": "b",
+-     "c": 2
++     "c": 3
+    },
+    "d": 4,
+-   "e": null,
+-   "f": [
+-     5,
+-     6,
+-     7
+    ],
++   "f": [
++     5,
++     7,
++     8,
++     9,
++     10
+    ],
++   "g": 14,
++   "h": [
++     1,
++     2,
++     3
+    ],
+-   "j": {
+-     "a": 1
+    }
++   "j": [
++     true,
++     false
+    ]
+  }
+-- diff.tf --
+  {
+  + a1 = {
+    + 1 = [
+      + 1
+      + 2
+      + 3
+      + true
+      ]
+    }
+    b = {
+    - b1 = "a"
+    - b2 = "b"
+    ~ c = 2 -> 3
+    }
+  - e = null
+  ~ f = [
+    - 5
+    - 6
+    - 7
+    ] -> [
+    + 5
+    + 7
+    + 8
+    + 9
+    + 10
+    ]
+  + g = 14
+  + h = [
+    + 1
+    + 2
+    + 3
+    ]
+  ~ j = {
+    - a = 1
+    } -> [
+    + true
+    + false
+    ]
+    # (2 unchanged attribute hidden)
+  }

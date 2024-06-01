@@ -5,13 +5,25 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/wI2L/jsondiff"
+	mianxiang "github.com/520MianXiangDuiXiang520/json-diff"
+	victorlowther "github.com/VictorLowther/jsonpatch2"
+	cameront "github.com/cameront/go-jsonpatch"
+	herkyl "github.com/herkyl/patchwerk"
+	mattbaird "github.com/mattbaird/jsonpatch"
+	snorwin "github.com/snorwin/jsonpatch"
+	wI2L "github.com/wI2L/jsondiff"
 
 	"github.com/breml/jsondiffprinter"
 )
 
-var format = flag.String("format", "ascii", "output format to use (ascii, terraform)")
+var (
+	// Call it showPatch?
+	debug    = flag.Bool("debug", false, "enable debug output")
+	format   = flag.String("format", "ascii", "output format to use (ascii, terraform)")
+	patchLib = flag.String("patchlib", "wI2L", "patch library to use (cameront, herkyl, mattbaird, MianXiang, snorwin, VictorLowther, VictorLowther-paranoid, wI2L)")
+)
 
 func main() {
 	flag.Parse()
@@ -49,10 +61,33 @@ func run(args []string) error {
 		return err
 	}
 
-	patch, err := jsondiff.Compare(before, after)
+	var patch any
+	switch strings.ToLower(*patchLib) {
+	case "cameront":
+		patch, err = cameront.MakePatch(before, after)
+	case "herkyl":
+		patch, err = herkyl.Diff(beforeJSON, afterJSON)
+	case "mattbaird":
+		patch, err = mattbaird.CreatePatch(beforeJSON, afterJSON)
+	case "mianxiang":
+		// TODO: consider options offered by 520MianXiangDuiXiang520/json-diff
+		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
+	case "snorwin":
+		var patchList snorwin.JSONPatchList
+		patchList, err = snorwin.CreateJSONPatch(after, before)
+		patch = patchList.Raw()
+	case "victorlowther":
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, false)
+	case "victorlowther-paranoid":
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, true)
+	default: // "wI2L"
+		patch, err = wI2L.Compare(before, after)
+	}
 	if err != nil {
 		return err
 	}
+
+	printPatch(patch)
 
 	switch *format {
 	case "ascii":
@@ -64,4 +99,23 @@ func run(args []string) error {
 	}
 
 	return err
+}
+
+func printPatch(patch any) {
+	if !*debug {
+		return
+	}
+
+	switch p := patch.(type) {
+	case []byte:
+		fmt.Println(string(p))
+	default:
+		patchJSON, err := json.MarshalIndent(patch, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			return
+		}
+
+		fmt.Println(string(patchJSON))
+	}
 }

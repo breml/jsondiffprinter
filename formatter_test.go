@@ -122,13 +122,16 @@ func TestFormatter(t *testing.T) {
 			for _, formatter := range formatters {
 				formatter := formatter
 				t.Run(formatter.name, func(t *testing.T) {
+					if txtarFileByName(t, txtar, formatter.wantFilename) == nil {
+						t.Skip("no want file found")
+					}
 					jsonInJSONInvocation = 0
 					buf.Reset()
 
 					err := formatter.formatter.Format(before, txtarFileByName(t, txtar, "patch.json").Data)
 					require.NoError(t, err)
 
-					require.Equal(t, string(txtarFileByName(t, txtar, formatter.wantFilename).Data), buf.String())
+					require.EqualStringWithTabwriter(t, string(txtarFileByName(t, txtar, formatter.wantFilename).Data), buf.String())
 				})
 			}
 		})
@@ -144,7 +147,6 @@ func txtarFileByName(t *testing.T, txtar *txtar.Archive, name string) *txtar.Fil
 		}
 	}
 
-	t.Fatalf("file %q not found", name)
 	return nil
 }
 

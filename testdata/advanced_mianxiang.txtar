@@ -1,23 +1,22 @@
-{}
+{
+  "jsonInJSON": [
+    "/array",
+    "/object"
+  ],
+  "patchLib": "mianxiang"
+}
 -- before.json --
 {
   "array": "[\"foo\",\"bar\"]",
   "object": "{\"array_changed\":[\"foo\",\"bar\",\"baz\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\"],\"array_item_removed\":[\"foo\",\"bar\",\"baz\"],\"array_removed\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":10,\"number_removed\":10,\"number_unchanged\":10,\"object_changed\":{\"key\":\"value\"},\"object_removed\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar\",\"string_removed\":\"removed\",\"string_unchanged\":\"foo\"}",
   "key": "value"
 }
--- patch.json --
-[
-  {
-    "value": "[\"new foo\",\"bar\",\"baz\"]",
-    "op": "replace",
-    "path": "/array"
-  },
-  {
-    "value": "{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}",
-    "op": "replace",
-    "path": "/object"
-  }
-]
+-- after.json --
+{
+  "array": "[\"new foo\",\"bar\",\"baz\"]",
+  "object": "{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}",
+  "key": "value"
+}
 -- diff.json --
   {
 -   "array": "[\"foo\",\"bar\"]",
@@ -50,8 +49,8 @@
         ]
         array_item_removed = [
           "foo"
-        ~ "bar" -> "baz"
-        - "baz"
+        - "bar"
+          "baz"
         ]
       + array_new = [
         + "foo"
@@ -83,102 +82,3 @@
     )
     # (1 unchanged attribute hidden)
   }
--- jsonInJSON.0.json --
-[
-  {
-    "value": "new foo",
-    "op": "replace",
-    "path": "/0"
-  },
-  {
-    "value": "baz",
-    "op": "add",
-    "path": "/-"
-  }
-]
-
--- jsonInJSON.1.json --
-[
-  {
-    "value": "foo2",
-    "op": "replace",
-    "path": "/array_changed/0"
-  },
-  {
-    "value": "baz2",
-    "op": "replace",
-    "path": "/array_changed/2"
-  },
-  {
-    "value": "biz",
-    "op": "add",
-    "path": "/array_item_added/-"
-  },
-  {
-    "op": "remove",
-    "path": "/array_item_removed/2"
-  },
-  {
-    "value": "baz",
-    "op": "replace",
-    "path": "/array_item_removed/1"
-  },
-  {
-    "value": [
-      "foo",
-      "bar",
-      "baz"
-    ],
-    "op": "add",
-    "path": "/array_new"
-  },
-  {
-    "op": "remove",
-    "path": "/array_removed"
-  },
-  {
-    "value": 14,
-    "op": "replace",
-    "path": "/number_changed"
-  },
-  {
-    "value": 14,
-    "op": "add",
-    "path": "/number_new"
-  },
-  {
-    "op": "remove",
-    "path": "/number_removed"
-  },
-  {
-    "value": "new value",
-    "op": "replace",
-    "path": "/object_changed/key"
-  },
-  {
-    "value": {
-      "key": "value"
-    },
-    "op": "add",
-    "path": "/object_new"
-  },
-  {
-    "op": "remove",
-    "path": "/object_removed"
-  },
-  {
-    "value": "bar changed",
-    "op": "replace",
-    "path": "/string_changed"
-  },
-  {
-    "value": "new",
-    "op": "add",
-    "path": "/string_new"
-  },
-  {
-    "op": "remove",
-    "path": "/string_removed"
-  }
-]
-

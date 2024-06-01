@@ -1,0 +1,51 @@
+{}
+-- before.json --
+{
+  "append": [1, 2, 3],
+  "insert": [1, 3],
+  "multi_change": [5, 6, 7],
+  "prepend": [1, 2, 3],
+  "remove": [1, 2, 3],
+  "update": [1, 2, 3]
+}
+-- patch.json --
+[{"op":"remove","path":"/multi_change/1"},{"op":"add","path":"/multi_change/2","value":8},{"op":"add","path":"/multi_change/3","value":9},{"op":"add","path":"/multi_change/4","value":10},{"op":"add","path":"/prepend/0","value":0},{"op":"remove","path":"/remove/1"},{"op":"replace","path":"/update/1","value":22},{"op":"add","path":"/append/3","value":4},{"op":"add","path":"/insert/1","value":2}]
+-- diff.json --
+  {
+    "append": [
+      1,
+      2,
+      3,
++     4
+    ],
+    "insert": [
+      1,
++     2,
+      3
+    ],
+    "multi_change": [
+      5,
+-     6,
+      7,
++     8,
++     9,
++     10
+    ],
+    "prepend": [
++     0,
+      1,
+      2,
+      3
+    ],
+    "remove": [
+      1,
+-     2,
+      3
+    ],
+    "update": [
+      1,
+-     2,
++     22,
+      3
+    ]
+  }

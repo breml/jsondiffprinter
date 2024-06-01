@@ -13,4 +13,4 @@
 - "<null>"
 + "<foobar>"
 -- diff.tf --
-"<null>" -> "<foobar>"
+  "<null>" -> "<foobar>"
