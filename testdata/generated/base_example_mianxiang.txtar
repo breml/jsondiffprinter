@@ -19,7 +19,78 @@
   }
 }
 -- patch.json --
-[{"op":"remove","path":"/e"},{"op":"remove","path":"/f/1"},{"op":"add","path":"/f/2","value":8},{"op":"add","path":"/f/3","value":9},{"op":"add","path":"/f/4","value":10},{"op":"replace","path":"/j","value":[true,false]},{"op":"remove","path":"/b/b2"},{"op":"replace","path":"/b/c","value":3},{"op":"remove","path":"/b/b1"},{"op":"add","path":"/a1","value":{"1":[1,2,3,true]}},{"op":"add","path":"/g","value":14},{"op":"add","path":"/h","value":[1,2,3]}]
+[
+  {
+    "value": {
+      "1": [
+        1,
+        2,
+        3,
+        true
+      ]
+    },
+    "op": "add",
+    "path": "/a1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b2"
+  },
+  {
+    "value": 3,
+    "op": "replace",
+    "path": "/b/c"
+  },
+  {
+    "op": "remove",
+    "path": "/e"
+  },
+  {
+    "op": "remove",
+    "path": "/f/1"
+  },
+  {
+    "value": 8,
+    "op": "add",
+    "path": "/f/2"
+  },
+  {
+    "value": 9,
+    "op": "add",
+    "path": "/f/3"
+  },
+  {
+    "value": 10,
+    "op": "add",
+    "path": "/f/4"
+  },
+  {
+    "value": 14,
+    "op": "add",
+    "path": "/g"
+  },
+  {
+    "value": [
+      1,
+      2,
+      3
+    ],
+    "op": "add",
+    "path": "/h"
+  },
+  {
+    "value": [
+      true,
+      false
+    ],
+    "op": "replace",
+    "path": "/j"
+  }
+]
 -- diff.json --
   {
     "a": 1,

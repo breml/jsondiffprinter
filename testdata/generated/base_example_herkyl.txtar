@@ -21,8 +21,6 @@
 -- patch.json --
 [
   {
-    "op": "replace",
-    "path": "",
     "value": {
       "a": 1,
       "a1": {
@@ -54,7 +52,9 @@
         true,
         false
       ]
-    }
+    },
+    "op": "replace",
+    "path": ""
   }
 ]
 -- diff.json --

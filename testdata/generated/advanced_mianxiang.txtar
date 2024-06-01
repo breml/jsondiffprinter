@@ -6,7 +6,18 @@
   "key": "value"
 }
 -- patch.json --
-[{"op":"replace","path":"/array","value":"[\"new foo\",\"bar\",\"baz\"]"},{"op":"replace","path":"/object","value":"{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}"}]
+[
+  {
+    "value": "[\"new foo\",\"bar\",\"baz\"]",
+    "op": "replace",
+    "path": "/array"
+  },
+  {
+    "value": "{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}",
+    "op": "replace",
+    "path": "/object"
+  }
+]
 -- diff.json --
   {
 -   "array": "[\"foo\",\"bar\"]",
@@ -73,8 +84,94 @@
     # (1 unchanged attribute hidden)
   }
 -- jsonInJSON.0.json --
-[{"op":"replace","path":"/0","value":"new foo"},{"op":"add","path":"/2","value":"baz"}]
-
+[
+  {
+    "value": "new foo",
+    "op": "replace",
+    "path": "/0"
+  },
+  {
+    "value": "baz",
+    "op": "add",
+    "path": "/2"
+  }
+]
 -- jsonInJSON.1.json --
-[{"op":"remove","path":"/object_removed"},{"op":"remove","path":"/array_item_removed/1"},{"op":"remove","path":"/array_removed"},{"op":"replace","path":"/object_changed/key","value":"new value"},{"op":"replace","path":"/number_changed","value":14},{"op":"remove","path":"/number_removed"},{"op":"replace","path":"/string_changed","value":"bar changed"},{"op":"remove","path":"/string_removed"},{"op":"replace","path":"/array_changed/0","value":"foo2"},{"op":"replace","path":"/array_changed/2","value":"baz2"},{"op":"add","path":"/array_item_added/3","value":"biz"},{"op":"add","path":"/number_new","value":14},{"op":"add","path":"/string_new","value":"new"},{"op":"add","path":"/object_new","value":{"key":"value"}},{"op":"add","path":"/array_new","value":["foo","bar","baz"]}]
-
+[
+  {
+    "value": "foo2",
+    "op": "replace",
+    "path": "/array_changed/0"
+  },
+  {
+    "value": "baz2",
+    "op": "replace",
+    "path": "/array_changed/2"
+  },
+  {
+    "value": "biz",
+    "op": "add",
+    "path": "/array_item_added/3"
+  },
+  {
+    "op": "remove",
+    "path": "/array_item_removed/1"
+  },
+  {
+    "value": [
+      "foo",
+      "bar",
+      "baz"
+    ],
+    "op": "add",
+    "path": "/array_new"
+  },
+  {
+    "op": "remove",
+    "path": "/array_removed"
+  },
+  {
+    "value": 14,
+    "op": "replace",
+    "path": "/number_changed"
+  },
+  {
+    "value": 14,
+    "op": "add",
+    "path": "/number_new"
+  },
+  {
+    "op": "remove",
+    "path": "/number_removed"
+  },
+  {
+    "value": "new value",
+    "op": "replace",
+    "path": "/object_changed/key"
+  },
+  {
+    "value": {
+      "key": "value"
+    },
+    "op": "add",
+    "path": "/object_new"
+  },
+  {
+    "op": "remove",
+    "path": "/object_removed"
+  },
+  {
+    "value": "bar changed",
+    "op": "replace",
+    "path": "/string_changed"
+  },
+  {
+    "value": "new",
+    "op": "add",
+    "path": "/string_new"
+  },
+  {
+    "op": "remove",
+    "path": "/string_removed"
+  }
+]
