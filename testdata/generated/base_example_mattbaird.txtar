@@ -1,6 +1,4 @@
-{
-  "patchLib": "mianxiang"
-}
+{}
 -- before.json --
 {
   "a": 1,
@@ -20,39 +18,79 @@
       "a": 1
   }
 }
--- after.json --
-{
-  "a": 1,
-  "a1": {
-      "1": [
-          1,
-          2,
-          3,
-          true
-      ]
+-- patch.json --
+[
+  {
+    "op": "remove",
+    "path": "/f/1"
   },
-  "g": 14,
-  "h": [
+  {
+    "op": "add",
+    "path": "/f/2",
+    "value": 8
+  },
+  {
+    "op": "add",
+    "path": "/f/3",
+    "value": 9
+  },
+  {
+    "op": "add",
+    "path": "/f/4",
+    "value": 10
+  },
+  {
+    "op": "replace",
+    "path": "/j",
+    "value": [
+      true,
+      false
+    ]
+  },
+  {
+    "op": "add",
+    "path": "/a1",
+    "value": {
+      "1": [
+        1,
+        2,
+        3,
+        true
+      ]
+    }
+  },
+  {
+    "op": "add",
+    "path": "/g",
+    "value": 14
+  },
+  {
+    "op": "add",
+    "path": "/h",
+    "value": [
       1,
       2,
       3
-  ],
-  "b": {
-      "c": 3
+    ]
   },
-  "d": 4,
-  "f": [
-      5,
-      7,
-      8,
-      9,
-      10
-  ],
-  "j": [
-      true,
-      false
-  ]
-}
+  {
+    "op": "replace",
+    "path": "/b/c",
+    "value": 3
+  },
+  {
+    "op": "remove",
+    "path": "/b/b1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b2"
+  },
+  {
+    "op": "remove",
+    "path": "/e"
+  }
+]
 -- diff.json --
   {
     "a": 1,

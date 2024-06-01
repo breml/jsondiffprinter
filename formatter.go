@@ -366,6 +366,8 @@ func (f Formatter) printOp(cfg printOpConfig) {
 
 	if cfg.withKey {
 		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, opTypeIndicator, cfg.indent, cfg.key, eol)
+	} else {
+		fmt.Fprint(f.w, "  ")
 	}
 	if cfg.valueOld != "" {
 		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.singleLineReplaceTransitionIndicator))
@@ -616,14 +618,14 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) jsonpatch.Patch {
 }
 
 func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {
-	deletePath := jsonpointer.Pointer{}
+	var deletePath *jsonpointer.Pointer
 	res := make(jsonpatch.Patch, 0, len(src)+len(patch))
 	for opIndex := 0; opIndex < len(src); opIndex++ {
 		op := src[opIndex]
-		if !deletePath.IsEmpty() && deletePath.IsParentOf(op.Path) {
+		if deletePath != nil && deletePath.IsParentOf(op.Path) {
 			continue
 		}
-		deletePath = jsonpointer.Pointer{}
+		deletePath = nil
 
 		// Search patch for operation with the same path.
 		// If none is found, keep the operation from the source document.
@@ -676,13 +678,14 @@ func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpat
 		switch patchop.Operation {
 		case jsonpatch.OperationTest:
 			// If the patch operation is a test operation, skip it.
+			opIndex--
 			continue
 
 		case jsonpatch.OperationReplace, jsonpatch.OperationRemove:
 			// If the patch operation is a replace or delete operation, preserve the
 			// old value and we mark all child operations for removal.
 			patchop.OldValue = op.Value
-			deletePath = op.Path
+			deletePath = &op.Path
 		}
 
 		res = append(res, patchop)

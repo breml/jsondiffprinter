@@ -1,0 +1,84 @@
+{
+  "jsonInJSON": [
+    "/array",
+    "/object"
+  ],
+  "patchLib": "mianxiang"
+}
+-- before.json --
+{
+  "array": "[\"foo\",\"bar\"]",
+  "object": "{\"array_changed\":[\"foo\",\"bar\",\"baz\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\"],\"array_item_removed\":[\"foo\",\"bar\",\"baz\"],\"array_removed\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":10,\"number_removed\":10,\"number_unchanged\":10,\"object_changed\":{\"key\":\"value\"},\"object_removed\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar\",\"string_removed\":\"removed\",\"string_unchanged\":\"foo\"}",
+  "key": "value"
+}
+-- after.json --
+{
+  "array": "[\"new foo\",\"bar\",\"baz\"]",
+  "object": "{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}",
+  "key": "value"
+}
+-- diff.json --
+  {
+-   "array": "[\"foo\",\"bar\"]",
++   "array": "[\"new foo\",\"bar\",\"baz\"]",
+    "key": "value",
+-   "object": "{\"array_changed\":[\"foo\",\"bar\",\"baz\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\"],\"array_item_removed\":[\"foo\",\"bar\",\"baz\"],\"array_removed\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":10,\"number_removed\":10,\"number_unchanged\":10,\"object_changed\":{\"key\":\"value\"},\"object_removed\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar\",\"string_removed\":\"removed\",\"string_unchanged\":\"foo\"}"
++   "object": "{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}"
+  }
+-- diff.tf --
+  {
+  ~ array = jsonencode(
+      [
+      ~ "foo" -> "new foo"
+        "bar"
+      + "baz"
+      ]
+    )
+  ~ object = jsonencode(
+      {
+        array_changed = [
+        ~ "foo" -> "foo2"
+          "bar"
+        ~ "baz" -> "baz2"
+        ]
+        array_item_added = [
+          "foo"
+          "bar"
+          "baz"
+        + "biz"
+        ]
+        array_item_removed = [
+          "foo"
+        - "bar"
+          "baz"
+        ]
+      + array_new = [
+        + "foo"
+        + "bar"
+        + "baz"
+        ]
+      - array_removed = [
+        - "foo"
+        - "bar"
+        - "baz"
+        ]
+      ~ number_changed = 10 -> 14
+      + number_new = 14
+      - number_removed = 10
+        object_changed = {
+        ~ key = "value" -> "new value"
+        }
+      + object_new = {
+        + key = "value"
+        }
+      - object_removed = {
+        - key = "value"
+        }
+      ~ string_changed = "bar" -> "bar changed"
+      + string_new = "new"
+      - string_removed = "removed"
+        # (4 unchanged attribute hidden)
+      }
+    )
+    # (1 unchanged attribute hidden)
+  }

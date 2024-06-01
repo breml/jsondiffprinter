@@ -19,7 +19,7 @@
   }
 }
 -- patch.json --
-[{"op":"remove","path":"/f/1"},{"op":"add","path":"/f/2","value":8},{"op":"add","path":"/f/3","value":9},{"op":"add","path":"/f/4","value":10},{"op":"replace","path":"/j","value":[true,false]},{"op":"replace","path":"/b/c","value":3},{"op":"remove","path":"/b/b1"},{"op":"remove","path":"/b/b2"},{"op":"remove","path":"/e"},{"op":"add","path":"/a1","value":{"1":[1,2,3,true]}},{"op":"add","path":"/g","value":14},{"op":"add","path":"/h","value":[1,2,3]}]
+[{"op":"remove","path":"/e"},{"op":"remove","path":"/f/1"},{"op":"add","path":"/f/2","value":8},{"op":"add","path":"/f/3","value":9},{"op":"add","path":"/f/4","value":10},{"op":"replace","path":"/j","value":[true,false]},{"op":"remove","path":"/b/b2"},{"op":"replace","path":"/b/c","value":3},{"op":"remove","path":"/b/b1"},{"op":"add","path":"/a1","value":{"1":[1,2,3,true]}},{"op":"add","path":"/g","value":14},{"op":"add","path":"/h","value":[1,2,3]}]
 -- diff.json --
   {
     "a": 1,
@@ -60,4 +60,42 @@
 +     true,
 +     false
     ]
+  }
+-- diff.tf --
+  {
+  + a1 = {
+    + 1 = [
+      + 1
+      + 2
+      + 3
+      + true
+      ]
+    }
+    b = {
+    - b1 = "a"
+    - b2 = "b"
+    ~ c = 2 -> 3
+    }
+  - e = null
+    f = [
+      5
+    - 6
+      7
+    + 8
+    + 9
+    + 10
+    ]
+  + g = 14
+  + h = [
+    + 1
+    + 2
+    + 3
+    ]
+  ~ j = {
+    - a = 1
+    } -> [
+    + true
+    + false
+    ]
+    # (2 unchanged attribute hidden)
   }

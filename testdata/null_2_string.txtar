@@ -5,4 +5,4 @@ null
 -- diff.json --
 + "foobar"
 -- diff.tf --
-"foobar"
+  "foobar"

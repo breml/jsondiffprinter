@@ -9,7 +9,7 @@
   "update": [1, 2, 3]
 }
 -- patch.json --
-[{"op":"replace","path":"/update/1","value":22},{"op":"add","path":"/append/3","value":4},{"op":"add","path":"/insert/1","value":2},{"op":"remove","path":"/multi_change/1"},{"op":"add","path":"/multi_change/2","value":8},{"op":"add","path":"/multi_change/3","value":9},{"op":"add","path":"/multi_change/4","value":10},{"op":"add","path":"/prepend/0","value":0},{"op":"remove","path":"/remove/1"}]
+[{"op":"remove","path":"/multi_change/1"},{"op":"add","path":"/multi_change/2","value":8},{"op":"add","path":"/multi_change/3","value":9},{"op":"add","path":"/multi_change/4","value":10},{"op":"add","path":"/prepend/0","value":0},{"op":"remove","path":"/remove/1"},{"op":"replace","path":"/update/1","value":22},{"op":"add","path":"/append/3","value":4},{"op":"add","path":"/insert/1","value":2}]
 -- diff.json --
   {
     "append": [

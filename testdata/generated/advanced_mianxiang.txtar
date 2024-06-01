@@ -1,0 +1,80 @@
+{}
+-- before.json --
+{
+  "array": "[\"foo\",\"bar\"]",
+  "object": "{\"array_changed\":[\"foo\",\"bar\",\"baz\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\"],\"array_item_removed\":[\"foo\",\"bar\",\"baz\"],\"array_removed\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":10,\"number_removed\":10,\"number_unchanged\":10,\"object_changed\":{\"key\":\"value\"},\"object_removed\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar\",\"string_removed\":\"removed\",\"string_unchanged\":\"foo\"}",
+  "key": "value"
+}
+-- patch.json --
+[{"op":"replace","path":"/array","value":"[\"new foo\",\"bar\",\"baz\"]"},{"op":"replace","path":"/object","value":"{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}"}]
+-- diff.json --
+  {
+-   "array": "[\"foo\",\"bar\"]",
++   "array": "[\"new foo\",\"bar\",\"baz\"]",
+    "key": "value",
+-   "object": "{\"array_changed\":[\"foo\",\"bar\",\"baz\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\"],\"array_item_removed\":[\"foo\",\"bar\",\"baz\"],\"array_removed\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":10,\"number_removed\":10,\"number_unchanged\":10,\"object_changed\":{\"key\":\"value\"},\"object_removed\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar\",\"string_removed\":\"removed\",\"string_unchanged\":\"foo\"}"
++   "object": "{\"array_changed\":[\"foo2\",\"bar\",\"baz2\"],\"array_item_added\":[\"foo\",\"bar\",\"baz\",\"biz\"],\"array_item_removed\":[\"foo\",\"baz\"],\"array_new\":[\"foo\",\"bar\",\"baz\"],\"array_unchanged\":[\"foo\",\"bar\",\"baz\"],\"number_changed\":14,\"number_new\":14,\"number_unchanged\":10,\"object_changed\":{\"key\":\"new value\"},\"object_new\":{\"key\":\"value\"},\"object_unchanged\":{\"key\":\"value\"},\"string_changed\":\"bar changed\",\"string_new\":\"new\",\"string_unchanged\":\"foo\"}"
+  }
+-- diff.tf --
+  {
+  ~ array = jsonencode(
+      [
+      ~ "foo" -> "new foo"
+        "bar"
+      + "baz"
+      ]
+    )
+  ~ object = jsonencode(
+      {
+        array_changed = [
+        ~ "foo" -> "foo2"
+          "bar"
+        ~ "baz" -> "baz2"
+        ]
+        array_item_added = [
+          "foo"
+          "bar"
+          "baz"
+        + "biz"
+        ]
+        array_item_removed = [
+          "foo"
+        - "bar"
+          "baz"
+        ]
+      + array_new = [
+        + "foo"
+        + "bar"
+        + "baz"
+        ]
+      - array_removed = [
+        - "foo"
+        - "bar"
+        - "baz"
+        ]
+      ~ number_changed = 10 -> 14
+      + number_new = 14
+      - number_removed = 10
+        object_changed = {
+        ~ key = "value" -> "new value"
+        }
+      + object_new = {
+        + key = "value"
+        }
+      - object_removed = {
+        - key = "value"
+        }
+      ~ string_changed = "bar" -> "bar changed"
+      + string_new = "new"
+      - string_removed = "removed"
+        # (4 unchanged attribute hidden)
+      }
+    )
+    # (1 unchanged attribute hidden)
+  }
+-- jsonInJSON.0.json --
+[{"op":"replace","path":"/0","value":"new foo"},{"op":"add","path":"/2","value":"baz"}]
+
+-- jsonInJSON.1.json --
+[{"op":"remove","path":"/object_removed"},{"op":"remove","path":"/array_item_removed/1"},{"op":"remove","path":"/array_removed"},{"op":"replace","path":"/object_changed/key","value":"new value"},{"op":"replace","path":"/number_changed","value":14},{"op":"remove","path":"/number_removed"},{"op":"replace","path":"/string_changed","value":"bar changed"},{"op":"remove","path":"/string_removed"},{"op":"replace","path":"/array_changed/0","value":"foo2"},{"op":"replace","path":"/array_changed/2","value":"baz2"},{"op":"add","path":"/array_item_added/3","value":"biz"},{"op":"add","path":"/number_new","value":14},{"op":"add","path":"/string_new","value":"new"},{"op":"add","path":"/object_new","value":{"key":"value"}},{"op":"add","path":"/array_new","value":["foo","bar","baz"]}]
+

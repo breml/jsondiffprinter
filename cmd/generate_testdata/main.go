@@ -147,7 +147,11 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 	case "victorlowther-paranoid":
 		patch, err = victorlowther.Generate(beforeJSON, afterJSON, true)
 		marshal = true
-	default: // "wI2L"
+	case "wi2l":
+		patch, err = wI2L.Compare(before, after)
+		marshal = true
+	default:
+		fmt.Fprintf(os.Stderr, `Unknown patch lib %q, default to "wI2L"`, patchLib)
 		patch, err = wI2L.Compare(before, after)
 		marshal = true
 	}
