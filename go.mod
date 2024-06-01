@@ -1,5 +1,5 @@
 module github.com/breml/jsondiffprinter
 
-go 1.21.7
+go 1.22.3
 
 require golang.org/x/tools v0.21.0

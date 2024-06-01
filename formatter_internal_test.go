@@ -194,7 +194,6 @@ func Test_compileDiffPatchSeries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := compileDiffPatchSeries(tc.src, tc.patch)
 			tc.assertErr(t, err)
-			// require.EqualStringWithTabwriter(t, fmt.Sprintf("%#v", tc.want), fmt.Sprintf("%#v", got))
 			require.Equal(t, tc.want, got)
 		})
 	}
