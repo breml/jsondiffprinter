@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	mianxiang "github.com/520MianXiangDuiXiang520/json-diff"
@@ -91,7 +92,7 @@ func main() {
 
 			patchFile := txtar.File{
 				Name: fmt.Sprintf("jsonInJSON.%d.json", i),
-				Data: append(patchData, '\n'),
+				Data: patchData,
 			}
 
 			txtarchive.Files = append(txtarchive.Files, patchFile)
@@ -138,6 +139,7 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 	case "mianxiang":
 		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
 	case "snorwin":
+		// TODO: add snorwin-threeway
 		var patchList snorwin.JSONPatchList
 		patchList, err = snorwin.CreateJSONPatch(after, before)
 		patch = patchList.Raw()
@@ -171,7 +173,51 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 		patchData = append(patchData, '\n')
 	}
 
-	return patchData
+	patchData = sortPatch(patchData)
+
+	return append(patchData, '\n')
+}
+
+func sortPatch(in []byte) []byte {
+	var patch wI2L.Patch
+	err := json.Unmarshal(in, &patch)
+	die(err)
+
+	sort.SliceStable(patch, func(i, j int) bool {
+		return patchLessThan(patch[i], patch[j])
+	})
+
+	in, err = json.MarshalIndent(patch, "", "  ")
+	die(err)
+
+	return in
+}
+
+func patchLessThan(a, b wI2L.Operation) bool {
+	if a.Path == b.Path {
+		return opOrder[a.Type] < opOrder[b.Type]
+	}
+
+	as := strings.Split(a.Path, "/")
+	bs := strings.Split(b.Path, "/")
+
+	for i := 0; i < min(len(as), len(bs)); i++ {
+		if as[i] == "-" || bs[i] == "-" {
+			return as[i] != "-"
+		}
+		if as[i] != bs[i] {
+			return as[i] < bs[i]
+		}
+	}
+
+	return len(as) < len(bs)
+}
+
+var opOrder = map[string]int{
+	"test":    0,
+	"replace": 1,
+	"remove":  2,
+	"add":     3,
 }
 
 func die(err error) {

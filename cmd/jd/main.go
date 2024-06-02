@@ -73,6 +73,7 @@ func run(args []string) error {
 		// TODO: consider options offered by 520MianXiangDuiXiang520/json-diff
 		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
 	case "snorwin":
+		// TODO: add snorwin-threeway
 		var patchList snorwin.JSONPatchList
 		patchList, err = snorwin.CreateJSONPatch(after, before)
 		patch = patchList.Raw()

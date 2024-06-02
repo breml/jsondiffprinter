@@ -21,70 +21,6 @@
 -- patch.json --
 [
   {
-    "op": "remove",
-    "path": "/e",
-    "from": "",
-    "value": null
-  },
-  {
-    "op": "replace",
-    "path": "/f",
-    "from": "",
-    "value": [
-      5,
-      7,
-      8,
-      9,
-      10
-    ]
-  },
-  {
-    "op": "replace",
-    "path": "/j",
-    "from": "",
-    "value": [
-      true,
-      false
-    ]
-  },
-  {
-    "op": "replace",
-    "path": "/b/c",
-    "from": "",
-    "value": 3
-  },
-  {
-    "op": "remove",
-    "path": "/b/b1",
-    "from": "",
-    "value": null
-  },
-  {
-    "op": "remove",
-    "path": "/b/b2",
-    "from": "",
-    "value": null
-  },
-  {
-    "op": "add",
-    "path": "/g",
-    "from": "",
-    "value": 14
-  },
-  {
-    "op": "add",
-    "path": "/h",
-    "from": "",
-    "value": [
-      1,
-      2,
-      3
-    ]
-  },
-  {
-    "op": "add",
-    "path": "/a1",
-    "from": "",
     "value": {
       "1": [
         1,
@@ -92,7 +28,59 @@
         3,
         true
       ]
-    }
+    },
+    "op": "add",
+    "path": "/a1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b2"
+  },
+  {
+    "value": 3,
+    "op": "replace",
+    "path": "/b/c"
+  },
+  {
+    "op": "remove",
+    "path": "/e"
+  },
+  {
+    "value": [
+      5,
+      7,
+      8,
+      9,
+      10
+    ],
+    "op": "replace",
+    "path": "/f"
+  },
+  {
+    "value": 14,
+    "op": "add",
+    "path": "/g"
+  },
+  {
+    "value": [
+      1,
+      2,
+      3
+    ],
+    "op": "add",
+    "path": "/h"
+  },
+  {
+    "value": [
+      true,
+      false
+    ],
+    "op": "replace",
+    "path": "/j"
   }
 ]
 -- diff.json --

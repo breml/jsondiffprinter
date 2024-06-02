@@ -96,7 +96,6 @@
     "path": "/-"
   }
 ]
-
 -- jsonInJSON.1.json --
 [
   {
@@ -115,13 +114,13 @@
     "path": "/array_item_added/-"
   },
   {
-    "op": "remove",
-    "path": "/array_item_removed/2"
-  },
-  {
     "value": "baz",
     "op": "replace",
     "path": "/array_item_removed/1"
+  },
+  {
+    "op": "remove",
+    "path": "/array_item_removed/2"
   },
   {
     "value": [
@@ -181,4 +180,3 @@
     "path": "/string_removed"
   }
 ]
-
