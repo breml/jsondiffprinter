@@ -19,17 +19,7 @@ import (
 	"github.com/breml/jsondiffprinter"
 )
 
-func main() {
-	if err := main0(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func main0(osArgs []string) error {
-	app := App{}
-
-	patchLibAcknowledgments := `
+const patchLibAcknowledgments = `
 Acknowledgments for the supported JSON patch libraries:
 
 * cameront: https://github.com/cameront/go-jsonpatch
@@ -41,6 +31,16 @@ Acknowledgments for the supported JSON patch libraries:
 * wI2L: https://github.com/wI2L/jsondiff
 
 `
+
+func main() {
+	if err := main0(os.Args); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func main0(osArgs []string) error {
+	app := App{}
 
 	cliapp := &cli.App{
 		Name:      "jd",
@@ -59,6 +59,7 @@ Acknowledgments for the supported JSON patch libraries:
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "format",
+				Aliases:     []string{"f"},
 				Usage:       `output format for the diff. Supported values: diff, terraform`,
 				Value:       "diff",
 				DefaultText: "diff",
@@ -74,6 +75,7 @@ Acknowledgments for the supported JSON patch libraries:
 			},
 			&cli.StringFlag{
 				Name:        "patchlib",
+				Aliases:     []string{"p"},
 				Usage:       `library, that is used to calculate the JSON patch between before and after. Supported values: cameront, herkyl, mattbaird, MianXiang, snorwin, VictorLowther, VictorLowther-paranoid, wI2L`,
 				Value:       "mattbaird",
 				DefaultText: "mattbaird",
@@ -89,11 +91,13 @@ Acknowledgments for the supported JSON patch libraries:
 			},
 			&cli.BoolFlag{
 				Name:        "color",
+				Aliases:     []string{"c"},
 				Usage:       "enable colorful printing",
 				Destination: &app.color,
 			},
 			&cli.BoolFlag{
 				Name:        "hide-unchanged",
+				Aliases:     []string{"u"},
 				Usage:       "hide unchanged lines",
 				Destination: &app.hideUnchanged,
 			},
