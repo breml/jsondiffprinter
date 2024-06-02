@@ -137,9 +137,25 @@ const (
 	valueTypeArray
 )
 
-// Format formats the JSON patch.
-func (f Formatter) Format(before any, jsonpatch any) error {
-	beforePatchTestSeries := asPatchTestSeries(before, jsonpointer.NewPointer())
+// Format writes the formatted representation of the jsonpatch applied to the
+// provided original in pretty form.
+//
+// The argument original can either be of tye []byte or any of the JSON types:
+// map[string]any, []any, bool, float64, string or nil.
+// If an other type is passed, Format will return an error.
+// If the type is []byte, the argument is treated as a marshalled JSON document
+// and is unmarshalled before processing.
+//
+// The argument jsonpatch can either be of type []byte representing a JSON
+// document following the JSON Patch specification (RFC 6902) or any type, that
+// is marshallable to a JSON document following the before mentioned
+// specification. In the second case is the argument marshalled to JSON before
+// being processed.
+func (f Formatter) Format(original any, jsonpatch any) error {
+	beforePatchTestSeries, err := asPatchTestSeries(original, jsonpointer.NewPointer())
+	if err != nil {
+		return err
+	}
 	patch, err := patchFromAny(jsonpatch)
 	if err != nil {
 		return err
@@ -580,10 +596,22 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 
 const defaultPatchAllocationSize = 32
 
-func asPatchTestSeries(value any, path jsonpointer.Pointer) jsonpatch.Patch {
+func asPatchTestSeries(value any, path jsonpointer.Pointer) (jsonpatch.Patch, error) {
 	patches := make(jsonpatch.Patch, 0, defaultPatchAllocationSize)
 
 	switch t := value.(type) {
+	case []byte:
+		if !path.IsEmpty() {
+			return nil, fmt.Errorf("[]byte is only supported at root level in original JSON")
+		}
+		err := json.Unmarshal(t, &value)
+		if err != nil {
+			return nil, err
+		}
+		patches, err = asPatchTestSeries(value, path)
+		if err != nil {
+			return nil, err
+		}
 	case map[string]any:
 		patches = append(patches, jsonpatch.Operation{
 			Operation: jsonpatch.OperationTest,
@@ -592,7 +620,11 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) jsonpatch.Patch {
 		})
 
 		for _, k := range keys(t) {
-			patches = append(patches, asPatchTestSeries(t[k], path.Append(k))...)
+			ps, err := asPatchTestSeries(t[k], path.Append(k))
+			if err != nil {
+				return nil, err
+			}
+			patches = append(patches, ps...)
 		}
 
 	case []any:
@@ -603,7 +635,11 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) jsonpatch.Patch {
 		})
 
 		for i, v := range t {
-			patches = append(patches, asPatchTestSeries(v, path.AppendIndex(i))...)
+			ps, err := asPatchTestSeries(v, path.AppendIndex(i))
+			if err != nil {
+				return nil, err
+			}
+			patches = append(patches, ps...)
 		}
 
 	// All other types, that are used by encoding/json.Unmarshal to []any or map[string]any.
@@ -615,10 +651,10 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) jsonpatch.Patch {
 		})
 
 	default:
-		panic(fmt.Sprintf("unsupported type %T", value))
+		return nil, fmt.Errorf("unsupported type %T for original JSON", value)
 	}
 
-	return patches
+	return patches, nil
 }
 
 func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {

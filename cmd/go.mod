@@ -3,7 +3,7 @@ module github.com/breml/jsondiffprinter/cmd
 go 1.22.3
 
 require (
-	github.com/breml/jsondiffprinter v0.0.5
+	github.com/breml/jsondiffprinter v0.0.7
 	github.com/qri-io/jsonpointer v0.1.1
 	github.com/snorwin/jsonpatch v1.5.0
 	github.com/wI2L/jsondiff v0.5.2
