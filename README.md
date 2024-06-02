@@ -90,6 +90,18 @@ Example output:
 
 For the full list of supported options, run `jd --help`.
 
+### Supported JSON Patch Libraries
+
+`jd` includes the following libraries to calculate the JSON patch:
+
+* [`cameront`](github.com/cameront/go-jsonpatch)
+* [`herkyl`](github.com/herkyl/patchwerk)
+* [`mattbaird`](github.com/mattbaird/jsonpatch)
+* [`MianXiang`](github.com/520MianXiangDuiXiang520/json-diff) (520MianXiangDuiXiang520)
+* [`snorwin`](github.com/snorwin/jsonpatch)
+* [`VictorLowther`](github.com/VictorLowther/jsonpatch2)
+* [`wI2L`](github.com/wI2L/jsondiff)
+
 ## Development
 
 In order to reduce the number of 3rd party dependencies, the package `jsondiffprinter`

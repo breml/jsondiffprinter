@@ -143,26 +143,26 @@ const (
 // The argument original can either be of tye []byte or any of the JSON types:
 // map[string]any, []any, bool, float64, string or nil.
 // If an other type is passed, Format will return an error.
-// If the type is []byte, the argument is treated as a marshalled JSON document
-// and is unmarshalled before processing.
+// If the type is []byte, the argument is treated as a marshaled JSON document
+// and is unmarshaled before processing.
 //
 // The argument jsonpatch can either be of type []byte representing a JSON
 // document following the JSON Patch specification (RFC 6902) or any type, that
-// is marshallable to a JSON document following the before mentioned
-// specification. In the second case is the argument marshalled to JSON before
+// is marshalable to a JSON document following the before mentioned
+// specification. In the second case is the argument marshaled to JSON before
 // being processed.
 func (f Formatter) Format(original any, jsonpatch any) error {
 	beforePatchTestSeries, err := asPatchTestSeries(original, jsonpointer.NewPointer())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to convert original JSON document to JSON patch series: %w", err)
 	}
 	patch, err := patchFromAny(jsonpatch)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to process JSON patch: %w", err)
 	}
 	diff, err := compileDiffPatchSeries(beforePatchTestSeries, patch)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to compile diff patch series: %w", err)
 	}
 
 	if f.patchSeriesPostProcess != nil {
