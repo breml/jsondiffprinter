@@ -24,7 +24,7 @@ jobs:
 
     strategy:
       matrix:
-        working-directory: [ "./", "./cmd" ]
+        working-directory: [ "./", "./cmd", "./examples" ]
 
     steps:
       - name: Set up Go ${{ env.GO_VERSION }}
@@ -59,3 +59,9 @@ jobs:
 
       - name: Lint
         run: golangci-lint run
+
+      - name: Test
+        run: go test -v -cover ./...
+
+      - name: Build
+        run: go build -ldflags "-s -w" -trimpath ./...

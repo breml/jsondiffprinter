@@ -3,7 +3,7 @@ module github.com/breml/jsondiffprinter/cmd
 go 1.22.3
 
 require (
-	github.com/breml/jsondiffprinter v0.0.5
+	github.com/breml/jsondiffprinter v0.0.7
 	github.com/qri-io/jsonpointer v0.1.1
 	github.com/snorwin/jsonpatch v1.5.0
 	github.com/wI2L/jsondiff v0.5.2
@@ -11,11 +11,14 @@ require (
 )
 
 require (
+	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v0.5.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
+	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 )
 
 require (
@@ -28,6 +31,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/urfave/cli/v2 v2.27.2
 )
 
 replace github.com/breml/jsondiffprinter => ../
