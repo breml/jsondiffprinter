@@ -82,10 +82,10 @@ func main0(osArgs []string) error {
 				Destination: &app.patchLib,
 				Action: func(ctx *cli.Context, s string) error {
 					switch strings.ToLower(s) {
-					case "cameront", "herkyl", "mattbaird", "MianXiang", "snorwin", "VictorLowther", "VictorLowther-paranoid", "wI2L":
+					case "cameront", "herkyl", "mattbaird", "mianxiang", "snorwin", "victorlowther", "victorlowther-paranoid", "wi2l":
 						return nil
 					default:
-						return fmt.Errorf(`Flag "--format" value %q is not allowed, supported values: cameront, herkyl, mattbaird, MianXiang, snorwin, VictorLowther, VictorLowther-paranoid, wI2L`, s)
+						return fmt.Errorf(`Flag "--patchlib" value %q is not allowed, supported values: cameront, herkyl, mattbaird, MianXiang, snorwin, VictorLowther, VictorLowther-paranoid, wI2L`, s)
 					}
 				},
 			},
