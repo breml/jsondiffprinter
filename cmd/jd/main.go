@@ -184,7 +184,7 @@ func (a *App) Run(ctx *cli.Context) error {
 		err = jsondiffprinter.NewTerraformFormatter(ctx.App.Writer, options...).Format(before, patch)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to format diff using format %q: %w", a.format, err)
+		return fmt.Errorf("failed to format using format %q: %w", a.format, err)
 	}
 
 	return nil

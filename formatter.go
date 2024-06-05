@@ -803,6 +803,9 @@ func patchFromAny(value any) (jsonpatch.Patch, error) {
 
 	switch t := value.(type) {
 	case []byte:
+		if len(t) == 0 {
+			return jsonpatch.Patch{}, nil
+		}
 		jsonbody = t
 	default:
 		jsonbody, err = json.Marshal(value)
