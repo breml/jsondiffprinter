@@ -21,6 +21,96 @@
 -- patch.json --
 [
   {
+    "op": "test",
+    "path": "/b/b2",
+    "from": "",
+    "value": "b"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b2",
+    "from": "",
+    "value": null
+  },
+  {
+    "op": "test",
+    "path": "/b/c",
+    "from": "",
+    "value": 2
+  },
+  {
+    "op": "replace",
+    "path": "/b/c",
+    "from": "",
+    "value": 3
+  },
+  {
+    "op": "test",
+    "path": "/b/b1",
+    "from": "",
+    "value": "a"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b1",
+    "from": "",
+    "value": null
+  },
+  {
+    "op": "test",
+    "path": "/e",
+    "from": "",
+    "value": null
+  },
+  {
+    "op": "remove",
+    "path": "/e",
+    "from": "",
+    "value": null
+  },
+  {
+    "op": "test",
+    "path": "/f",
+    "from": "",
+    "value": [
+      5,
+      6,
+      7
+    ]
+  },
+  {
+    "op": "replace",
+    "path": "/f",
+    "from": "",
+    "value": [
+      5,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "op": "test",
+    "path": "/j",
+    "from": "",
+    "value": {
+      "a": 1
+    }
+  },
+  {
+    "op": "replace",
+    "path": "/j",
+    "from": "",
+    "value": [
+      true,
+      false
+    ]
+  },
+  {
+    "op": "add",
+    "path": "/a1",
+    "from": "",
     "value": {
       "1": [
         1,
@@ -28,95 +118,23 @@
         3,
         true
       ]
-    },
+    }
+  },
+  {
     "op": "add",
-    "path": "/a1"
+    "path": "/g",
+    "from": "",
+    "value": 14
   },
   {
-    "value": "a",
-    "op": "test",
-    "path": "/b/b1"
-  },
-  {
-    "op": "remove",
-    "path": "/b/b1"
-  },
-  {
-    "value": "b",
-    "op": "test",
-    "path": "/b/b2"
-  },
-  {
-    "op": "remove",
-    "path": "/b/b2"
-  },
-  {
-    "value": 2,
-    "op": "test",
-    "path": "/b/c"
-  },
-  {
-    "value": 3,
-    "op": "replace",
-    "path": "/b/c"
-  },
-  {
-    "value": null,
-    "op": "test",
-    "path": "/e"
-  },
-  {
-    "op": "remove",
-    "path": "/e"
-  },
-  {
-    "value": [
-      5,
-      6,
-      7
-    ],
-    "op": "test",
-    "path": "/f"
-  },
-  {
-    "value": [
-      5,
-      7,
-      8,
-      9,
-      10
-    ],
-    "op": "replace",
-    "path": "/f"
-  },
-  {
-    "value": 14,
     "op": "add",
-    "path": "/g"
-  },
-  {
+    "path": "/h",
+    "from": "",
     "value": [
       1,
       2,
       3
-    ],
-    "op": "add",
-    "path": "/h"
-  },
-  {
-    "value": {
-      "a": 1
-    },
-    "op": "test",
-    "path": "/j"
-  },
-  {
-    "value": [
-      true,
-      false
-    ],
-    "op": "replace",
-    "path": "/j"
+    ]
   }
 ]
 -- diff.json --

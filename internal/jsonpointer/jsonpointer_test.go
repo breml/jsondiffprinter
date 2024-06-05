@@ -2,6 +2,7 @@ package jsonpointer_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/breml/jsondiffprinter/internal/jsonpointer"
@@ -273,6 +274,52 @@ func TestPointerIsParentOf(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.want, tc.parent.IsParentOf(tc.child))
+		})
+	}
+}
+
+func TestPointerLessThan(t *testing.T) {
+	tt := []struct {
+		name string
+		want bool
+	}{
+		{
+			name: " < ", // root < root
+			want: false,
+		},
+		{
+			name: " < /child", // root < /child
+			want: true,
+		},
+		{
+			name: "/a < /b",
+			want: true,
+		},
+		{
+			name: "/1 < /2",
+			want: true,
+		},
+		{
+			name: "/1 < /-",
+			want: true,
+		},
+		{
+			name: "/- < /-",
+			want: true,
+		},
+		{
+			name: "/a < /b/-",
+			want: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			parts := strings.SplitN(tc.name, "<", 2)
+			a := jsonpointer.NewPointerFromPath(strings.TrimSpace(parts[0]))
+			b := jsonpointer.NewPointerFromPath(strings.TrimSpace(parts[1]))
+
+			require.Equal(t, tc.want, a.LessThan(b))
 		})
 	}
 }

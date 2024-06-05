@@ -109,22 +109,16 @@
     "path": "/array_changed/2"
   },
   {
-    "value": "biz",
-    "op": "add",
-    "path": "/array_item_added/3"
+    "op": "remove",
+    "path": "/string_removed"
   },
   {
     "op": "remove",
     "path": "/array_item_removed/1"
   },
   {
-    "value": [
-      "foo",
-      "bar",
-      "baz"
-    ],
-    "op": "add",
-    "path": "/array_new"
+    "op": "remove",
+    "path": "/number_removed"
   },
   {
     "op": "remove",
@@ -136,18 +130,37 @@
     "path": "/number_changed"
   },
   {
-    "value": 14,
+    "value": "bar changed",
+    "op": "replace",
+    "path": "/string_changed"
+  },
+  {
+    "value": "biz",
     "op": "add",
-    "path": "/number_new"
+    "path": "/array_item_added/3"
   },
   {
     "op": "remove",
-    "path": "/number_removed"
+    "path": "/object_removed"
   },
   {
     "value": "new value",
     "op": "replace",
     "path": "/object_changed/key"
+  },
+  {
+    "value": "new",
+    "op": "add",
+    "path": "/string_new"
+  },
+  {
+    "value": [
+      "foo",
+      "bar",
+      "baz"
+    ],
+    "op": "add",
+    "path": "/array_new"
   },
   {
     "value": {
@@ -157,21 +170,8 @@
     "path": "/object_new"
   },
   {
-    "op": "remove",
-    "path": "/object_removed"
-  },
-  {
-    "value": "bar changed",
-    "op": "replace",
-    "path": "/string_changed"
-  },
-  {
-    "value": "new",
+    "value": 14,
     "op": "add",
-    "path": "/string_new"
-  },
-  {
-    "op": "remove",
-    "path": "/string_removed"
+    "path": "/number_new"
   }
 ]

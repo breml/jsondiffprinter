@@ -1,0 +1,31 @@
+{
+  "patchLib": "mattbaird"
+}
+-- before.json --
+{
+  "array": [1, 2, 3, 4, 5]
+}
+-- after.json --
+{
+  "array": [2, 3]
+}
+-- diff.json --
+  {
+    "array": [
+-     1,
+      2,
+      3,
+-     4,
+-     5
+    ]
+  }
+-- diff.tf --
+  {
+    array = [
+    - 1
+      2
+      3
+    - 4
+    - 5
+    ]
+  }

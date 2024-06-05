@@ -66,13 +66,13 @@
     "path": "/prepend/-"
   },
   {
+    "op": "remove",
+    "path": "/remove/2"
+  },
+  {
     "value": 3,
     "op": "replace",
     "path": "/remove/1"
-  },
-  {
-    "op": "remove",
-    "path": "/remove/2"
   },
   {
     "value": 22,

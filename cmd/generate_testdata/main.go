@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	mianxiang "github.com/520MianXiangDuiXiang520/json-diff"
@@ -124,100 +123,52 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 	err = json.Unmarshal(afterJSON, &after)
 	die(err)
 
-	var marshal bool
+	var unmarshal bool
 	var patch any
 	switch strings.ToLower(patchLib) {
 	case "cameront":
 		patch, err = cameront.MakePatch(before, after)
-		marshal = true
 	case "herkyl":
 		patch, err = herkyl.Diff(beforeJSON, afterJSON)
-		marshal = true
 	case "mattbaird":
 		patch, err = mattbaird.CreatePatch(beforeJSON, afterJSON)
-		marshal = true
 	case "mianxiang":
 		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
+		unmarshal = true
 	case "snorwin":
 		// TODO: add snorwin-threeway
 		var patchList snorwin.JSONPatchList
 		patchList, err = snorwin.CreateJSONPatch(after, before)
 		patch = patchList.Raw()
+		unmarshal = true
 	case "victorlowther":
 		patch, err = victorlowther.Generate(beforeJSON, afterJSON, false)
-		marshal = true
 	case "victorlowther-paranoid":
 		patch, err = victorlowther.Generate(beforeJSON, afterJSON, true)
-		marshal = true
 	case "wi2l":
 		patch, err = wI2L.Compare(before, after)
-		marshal = true
 	default:
 		fmt.Fprintf(os.Stderr, `Unknown patch lib %q, default to "wI2L"`, patchLib)
 		patch, err = wI2L.Compare(before, after)
-		marshal = true
 	}
 	die(err)
 
-	var patchData []byte
-	if marshal {
-		buf := bytes.Buffer{}
-		encoder := json.NewEncoder(&buf)
-		encoder.SetIndent("", "  ")
-		encoder.SetEscapeHTML(false)
-		err = encoder.Encode(patch)
+	if unmarshal {
+		var t wI2L.Patch
+		err = json.Unmarshal(patch.([]byte), &t)
 		die(err)
-		patchData = buf.Bytes()
-	} else {
-		patchData = patch.([]byte)
-		patchData = append(patchData, '\n')
+		patch = t
 	}
 
-	patchData = sortPatch(patchData)
-
-	return append(patchData, '\n')
-}
-
-func sortPatch(in []byte) []byte {
-	var patch wI2L.Patch
-	err := json.Unmarshal(in, &patch)
+	buf := bytes.Buffer{}
+	encoder := json.NewEncoder(&buf)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+	// FIXME: make encoding stable
+	err = encoder.Encode(patch)
 	die(err)
 
-	sort.SliceStable(patch, func(i, j int) bool {
-		return patchLessThan(patch[i], patch[j])
-	})
-
-	in, err = json.MarshalIndent(patch, "", "  ")
-	die(err)
-
-	return in
-}
-
-func patchLessThan(a, b wI2L.Operation) bool {
-	if a.Path == b.Path {
-		return opOrder[a.Type] < opOrder[b.Type]
-	}
-
-	as := strings.Split(a.Path, "/")
-	bs := strings.Split(b.Path, "/")
-
-	for i := 0; i < min(len(as), len(bs)); i++ {
-		if as[i] == "-" || bs[i] == "-" {
-			return as[i] != "-"
-		}
-		if as[i] != bs[i] {
-			return as[i] < bs[i]
-		}
-	}
-
-	return len(as) < len(bs)
-}
-
-var opOrder = map[string]int{
-	"test":    0,
-	"replace": 1,
-	"remove":  2,
-	"add":     3,
+	return buf.Bytes()
 }
 
 func die(err error) {

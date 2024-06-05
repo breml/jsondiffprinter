@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 
@@ -658,115 +659,115 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) (jsonpatch.Patch, er
 }
 
 func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {
-	var deletePath *jsonpointer.Pointer
-	res := make(jsonpatch.Patch, 0, len(src)+len(patch))
-	for opIndex := 0; opIndex < len(src); opIndex++ {
-		op := src[opIndex]
-		if deletePath != nil && deletePath.IsParentOf(op.Path) {
-			continue
-		}
-		deletePath = nil
+	if len(src) == 0 {
+		src = jsonpatch.Patch{}
+	}
 
-		// Search patch for operation with the same path.
-		// If none is found, keep the operation from the source document.
-		i, ok := findPatchIndex(patch, op.Path)
-		if !ok {
-			res = append(res, op)
-			continue
-		}
-
-		patchop := patch[i]
-		patch = append(patch[:i], patch[i+1:]...)
-
-		if patchop.Operation == jsonpatch.OperationAdd && patchop.Path.IsEmpty() {
-			if len(patch) > 0 {
-				return nil, fmt.Errorf("patch is not empty after it has been applied")
-			}
-			// If incomparable values are located at the root
-			// of the document, an add operation to replace
-			// the entire content of the document is provided.
-			// https://tools.ietf.org/html/rfc6902#section-4.1
-			//
-			// We replace this operation based on the following rules:
-			// * if op.Value is nil, return the add operation
-			// * if patchop.Value is nil, return a remove operation
-			// * else return a replace operation
-			if op.Value == nil {
-				return jsonpatch.Patch{
-					patchop,
-				}, nil
-			}
-			if patchop.Value == nil {
-				return jsonpatch.Patch{
+	for opIndex := 0; opIndex < len(patch); opIndex++ {
+		patchOp := patch[opIndex]
+		switch patchOp.Operation {
+		case jsonpatch.OperationAdd:
+			if patchOp.Path.IsEmpty() {
+				op := jsonpatch.Operation{}
+				if len(src) > 0 {
+					op = src[0]
+				}
+				// If incomparable values are located at the root
+				// of the document, an add operation to replace
+				// the entire content of the document is provided.
+				// https://tools.ietf.org/html/rfc6902#section-4.1
+				//
+				// We replace this operation based on the following rules:
+				// * if op.Value is nil, return the add operation
+				// * if patchop.Value is nil, return a remove operation
+				// * else return a replace operation
+				if op.Value == nil {
+					src = jsonpatch.Patch{
+						patchOp,
+					}
+					break
+				}
+				if patchOp.Value == nil {
+					src = jsonpatch.Patch{
+						jsonpatch.Operation{
+							Operation: jsonpatch.OperationRemove,
+							Path:      patchOp.Path,
+							OldValue:  op.Value,
+						},
+					}
+					break
+				}
+				src = jsonpatch.Patch{
 					jsonpatch.Operation{
-						Operation: jsonpatch.OperationRemove,
-						Path:      patchop.Path,
+						Operation: jsonpatch.OperationReplace,
+						Path:      patchOp.Path,
+						Value:     patchOp.Value,
 						OldValue:  op.Value,
 					},
-				}, nil
+				}
 			}
-			return jsonpatch.Patch{
-				jsonpatch.Operation{
-					Operation: jsonpatch.OperationReplace,
-					Path:      patchop.Path,
-					Value:     patchop.Value,
-					OldValue:  op.Value,
-				},
-			}, nil
-		}
 
-		switch patchop.Operation {
-		case jsonpatch.OperationTest:
-			// If the patch operation is a test operation, skip it.
-			opIndex--
-			continue
+			if len(src) == 0 {
+				src = jsonpatch.Patch{patchOp}
+				break
+			}
 
-		case jsonpatch.OperationReplace, jsonpatch.OperationRemove:
-			// If the patch operation is a replace or delete operation, preserve the
-			// old value and we mark all child operations for removal.
-			patchop.OldValue = op.Value
-			deletePath = &op.Path
-		}
+			var i int
+			for i = range src {
+				if src[i].Path.LessThan(patchOp.Path) {
+					continue
+				}
 
-		res = append(res, patchop)
+				i--
+				break
+			}
 
-		if patchop.Operation == jsonpatch.OperationAdd {
-			res = append(res, op)
-		}
+			i++
+			src = slices.Insert(src, i, patchOp)
 
-		if patchop.Operation == jsonpatch.OperationRemove && parentIsArray(src, patchop.Path) {
-			for j := opIndex + 1; j < len(src); j++ {
-				if src[j].Path.HasSameAncestorsAs(patchop.Path) {
-					src[j].Path.DecrementIndex()
+		case jsonpatch.OperationReplace:
+			i, ok := findPatchIndex(src, patchOp.Path)
+			if !ok {
+				return nil, fmt.Errorf("path %q not found in original", patchOp.Path.String())
+			}
+
+			patchOp.OldValue = src[i].Value
+			src[i] = patchOp
+
+			for j := i; j < len(src); j++ {
+				if patchOp.Path.IsParentOf(src[j].Path) {
+					src = slices.Delete(src, j, j+1)
+					j--
+				}
+			}
+
+		case jsonpatch.OperationRemove:
+			i, ok := findPatchIndex(src, patchOp.Path)
+			if !ok {
+				return nil, fmt.Errorf("path %q not found in original", patchOp.Path.String())
+			}
+
+			patchOp.OldValue = src[i].Value
+			src[i] = patchOp
+
+			for j := opIndex + 1; j < len(patch); j++ {
+				if patch[j].Path.HasSameAncestorsAs(patchOp.Path) && !patch[j].Path.LessThan(patchOp.Path) {
+					patch[j].Path.IncrementIndex()
 					continue
 				}
 				break
 			}
+
+			for j := i; j < len(src); j++ {
+				if patchOp.Path.IsParentOf(src[j].Path) {
+					src = slices.Delete(src, j, j+1)
+					j--
+				}
+			}
 		}
 	}
 
-	for i := 0; i < len(patch); i++ {
-		if patch[i].Operation != jsonpatch.OperationAdd {
-			continue
-		}
-
-		if patch[i].Operation == jsonpatch.OperationAdd {
-			res = append(res, patch[i])
-		}
-
-		patch = append(patch[:i], patch[i+1:]...)
-		i--
-	}
-
-	if len(patch) > 0 {
-		return nil, fmt.Errorf("patch is not empty after it has been applied")
-	}
-
-	sort.SliceStable(res, func(i, j int) bool {
-		return res[i].Path.LessThan(res[j].Path)
-	})
-
-	return res, nil
+	return src, nil
 }
 
 func parentIsArray(patch jsonpatch.Patch, path jsonpointer.Pointer) bool {
