@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"hash"
+	"hash/crc64"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,10 +18,9 @@ import (
 	cameront "github.com/cameront/go-jsonpatch"
 	herkyl "github.com/herkyl/patchwerk"
 	mattbaird "github.com/mattbaird/jsonpatch"
+	"github.com/qri-io/jsonpointer"
 	snorwin "github.com/snorwin/jsonpatch"
 	wI2L "github.com/wI2L/jsondiff"
-
-	"github.com/qri-io/jsonpointer"
 	"golang.org/x/tools/txtar"
 )
 
@@ -42,12 +43,41 @@ type metadata struct {
 	PatchLib   *string                   `json:"patchLib,omitempty"`
 }
 
+type State map[string]checksum
+
+type checksum struct {
+	Checksum uint64 `json:"checksum,string"`
+}
+
 func main() {
-	files, err := filepath.Glob(filepath.Join(basePath, "*.txtar"))
+	s, err := os.ReadFile(filepath.Join(basePath, "generated", ".state"))
 	die(err)
 
+	var currentState State
+	err = json.Unmarshal(s, &currentState)
+	die(err)
+
+	var h hash.Hash64
+	h = crc64.New(crc64.MakeTable(crc64.ECMA))
+
+	files, err := filepath.Glob(filepath.Join(basePath, "*.txtar"))
+	die(err)
+	newState := make(State, len(files))
 	for _, filename := range files {
-		fmt.Println("Processing", filename)
+		fmt.Print("Processing", filename, "...")
+
+		fbody, err := os.ReadFile(filename)
+		die(err)
+
+		h.Reset()
+		h.Write(fbody)
+		if currentState[filename].Checksum == h.Sum64() {
+			fmt.Println("unchanged")
+			newState[filename] = currentState[filename]
+			delete(currentState, filename)
+			continue
+		}
+
 		txtarchive, err := txtar.ParseFile(filename)
 		die(err)
 
@@ -112,7 +142,28 @@ func main() {
 		targetFilename := filepath.Join(basePath, "generated", filepath.Base(filename))
 		err = os.WriteFile(targetFilename, buf2.Bytes(), 0o644)
 		die(err)
+
+		fbody, err = os.ReadFile(filename)
+		die(err)
+
+		h.Reset()
+		h.Write(fbody)
+		newState[filename] = checksum{h.Sum64()}
+		delete(currentState, filename)
+
+		fmt.Println("done")
 	}
+
+	for filename := range currentState {
+		err = os.Remove(strings.Replace(filename, "testdata", filepath.Join("testdata", "generated"), 1))
+		die(err)
+	}
+
+	s, err = json.MarshalIndent(newState, "", "  ")
+	die(err)
+
+	err = os.WriteFile(filepath.Join(basePath, "generated", ".state"), s, 0o660)
+	die(err)
 }
 
 func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
@@ -164,7 +215,6 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 	encoder := json.NewEncoder(&buf)
 	encoder.SetIndent("", "  ")
 	encoder.SetEscapeHTML(false)
-	// FIXME: make encoding stable
 	err = encoder.Encode(patch)
 	die(err)
 
