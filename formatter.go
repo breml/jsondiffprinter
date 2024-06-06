@@ -770,16 +770,6 @@ func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpat
 	return src, nil
 }
 
-func parentIsArray(patch jsonpatch.Patch, path jsonpointer.Pointer) bool {
-	for i := range patch {
-		if patch[i].Path.IsParentOf(path) {
-			_, ok := patch[i].Value.([]any)
-			return ok
-		}
-	}
-	return false
-}
-
 func findPatchIndex(patch jsonpatch.Patch, path jsonpointer.Pointer) (int, bool) {
 	for i := range patch {
 		if patch[i].Path.Equals(path) {

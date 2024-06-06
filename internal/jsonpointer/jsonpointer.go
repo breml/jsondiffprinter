@@ -79,6 +79,11 @@ func (p Pointer) LessThan(alt Pointer) (b bool) {
 	}
 	for i := 0; i < min(len(p), len(alt)); i++ {
 		if p[i] != alt[i] {
+			pi, perr := strconv.Atoi(p[i])
+			alti, alterr := strconv.Atoi(alt[i])
+			if perr == nil && alterr == nil {
+				return pi < alti
+			}
 			return p[i] < alt[i]
 		}
 	}

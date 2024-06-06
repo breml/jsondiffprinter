@@ -14,6 +14,9 @@
   "../../testdata/array_element_remove_mattbaird.txtar": {
     "checksum": "3112651124190382246"
   },
+  "../../testdata/array_element_type_change_mianxiang.txtar": {
+    "checksum": "16397614689355210395"
+  },
   "../../testdata/array_mianxiang.txtar": {
     "checksum": "1225179425346615839"
   },

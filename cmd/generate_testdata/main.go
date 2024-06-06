@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"hash"
 	"hash/crc64"
 	"log"
 	"os"
@@ -57,8 +56,7 @@ func main() {
 	err = json.Unmarshal(s, &currentState)
 	die(err)
 
-	var h hash.Hash64
-	h = crc64.New(crc64.MakeTable(crc64.ECMA))
+	h := crc64.New(crc64.MakeTable(crc64.ECMA))
 
 	files, err := filepath.Glob(filepath.Join(basePath, "*.txtar"))
 	die(err)

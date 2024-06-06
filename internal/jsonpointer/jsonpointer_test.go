@@ -311,6 +311,10 @@ func TestPointerLessThan(t *testing.T) {
 			name: "/a < /b/-",
 			want: true,
 		},
+		{
+			name: "/a/5 < /a/10",
+			want: true,
+		},
 	}
 
 	for _, tc := range tt {

@@ -1,0 +1,130 @@
+{}
+-- before.json --
+{
+  "array": [
+    1,
+    "2",
+    3.0,
+    [
+      4,
+      5
+    ],
+    {
+      "key": "value"
+    },
+    true,
+    false,
+    null
+  ]
+}
+-- patch.json --
+[
+  {
+    "op": "remove",
+    "path": "/array/0"
+  },
+  {
+    "op": "remove",
+    "path": "/array/0"
+  },
+  {
+    "op": "remove",
+    "path": "/array/0"
+  },
+  {
+    "op": "remove",
+    "path": "/array/0"
+  },
+  {
+    "op": "remove",
+    "path": "/array/0"
+  },
+  {
+    "op": "remove",
+    "path": "/array/0"
+  },
+  {
+    "op": "remove",
+    "path": "/array/0"
+  },
+  {
+    "value": false,
+    "op": "add",
+    "path": "/array/1"
+  },
+  {
+    "value": true,
+    "op": "add",
+    "path": "/array/2"
+  },
+  {
+    "value": {
+      "key": "value"
+    },
+    "op": "add",
+    "path": "/array/3"
+  },
+  {
+    "value": [
+      4,
+      5
+    ],
+    "op": "add",
+    "path": "/array/4"
+  },
+  {
+    "value": 3,
+    "op": "add",
+    "path": "/array/5"
+  },
+  {
+    "value": "2",
+    "op": "add",
+    "path": "/array/6"
+  },
+  {
+    "value": 1,
+    "op": "add",
+    "path": "/array/7"
+  }
+]
+-- diff.json --
+  {
+    "array": [
+-     1,
+-     "2",
+-     3,
+-     [
+-       4,
+-       5
+      ],
+-     {
+-       "key": "value"
+      },
+-     true,
+-     false,
+      null,
++     false,
++     true,
++     {
++       "key": "value"
+      },
++     [
++       4,
++       5
+      ],
++     3,
++     "2",
++     1
+    ]
+  }
+-- diff.tf.off --
+  {
+    array = [
+    - 1
+      2
+      3
+    - 4
+    - 5
+    ]
+  }
