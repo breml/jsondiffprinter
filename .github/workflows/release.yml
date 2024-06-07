@@ -41,6 +41,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Pull new module version
-      # Temporary workaround for
-      uses: breml/go-proxy-pull-action@master
-      # uses: andrewslotin/go-proxy-pull-action@master
+      uses: andrewslotin/go-proxy-pull-action@master
