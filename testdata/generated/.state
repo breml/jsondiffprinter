@@ -1,0 +1,56 @@
+{
+  "../../testdata/advanced.txtar": {
+    "checksum": "14917684583732982198"
+  },
+  "../../testdata/advanced_mianxiang.txtar": {
+    "checksum": "9148239516385585667"
+  },
+  "../../testdata/array.txtar": {
+    "checksum": "17068550288242514599"
+  },
+  "../../testdata/array_element_remove.txtar": {
+    "checksum": "10791245977055231571"
+  },
+  "../../testdata/array_element_remove_mattbaird.txtar": {
+    "checksum": "3112651124190382246"
+  },
+  "../../testdata/array_element_type_change_mianxiang.txtar": {
+    "checksum": "16397614689355210395"
+  },
+  "../../testdata/array_mianxiang.txtar": {
+    "checksum": "1225179425346615839"
+  },
+  "../../testdata/base_example.txtar": {
+    "checksum": "3620106262139438643"
+  },
+  "../../testdata/base_example_herkyl.txtar": {
+    "checksum": "2405997401433432728"
+  },
+  "../../testdata/base_example_mattbaird.txtar": {
+    "checksum": "1208554042239718331"
+  },
+  "../../testdata/base_example_mianxiang.txtar": {
+    "checksum": "16017422559426427652"
+  },
+  "../../testdata/base_example_victorlowther-paranoid.txtar": {
+    "checksum": "16791430216373269744"
+  },
+  "../../testdata/base_example_victorlowther.txtar": {
+    "checksum": "17763455109320341667"
+  },
+  "../../testdata/force_update.txtar": {
+    "checksum": "17951181916272195793"
+  },
+  "../../testdata/json_in_json_small.txtar": {
+    "checksum": "16990960355464962902"
+  },
+  "../../testdata/null_2_string.txtar": {
+    "checksum": "8884358695878970600"
+  },
+  "../../testdata/string_2_null.txtar": {
+    "checksum": "17797120802182691781"
+  },
+  "../../testdata/string_2_string.txtar": {
+    "checksum": "11446300630245067756"
+  }
+}

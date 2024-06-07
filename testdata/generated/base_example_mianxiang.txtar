@@ -21,31 +21,6 @@
 -- patch.json --
 [
   {
-    "value": {
-      "1": [
-        1,
-        2,
-        3,
-        true
-      ]
-    },
-    "op": "add",
-    "path": "/a1"
-  },
-  {
-    "op": "remove",
-    "path": "/b/b1"
-  },
-  {
-    "op": "remove",
-    "path": "/b/b2"
-  },
-  {
-    "value": 3,
-    "op": "replace",
-    "path": "/b/c"
-  },
-  {
     "op": "remove",
     "path": "/e"
   },
@@ -69,9 +44,25 @@
     "path": "/f/4"
   },
   {
-    "value": 14,
-    "op": "add",
-    "path": "/g"
+    "value": [
+      true,
+      false
+    ],
+    "op": "replace",
+    "path": "/j"
+  },
+  {
+    "value": 3,
+    "op": "replace",
+    "path": "/b/c"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b1"
+  },
+  {
+    "op": "remove",
+    "path": "/b/b2"
   },
   {
     "value": [
@@ -83,12 +74,21 @@
     "path": "/h"
   },
   {
-    "value": [
-      true,
-      false
-    ],
-    "op": "replace",
-    "path": "/j"
+    "value": {
+      "1": [
+        1,
+        2,
+        3,
+        true
+      ]
+    },
+    "op": "add",
+    "path": "/a1"
+  },
+  {
+    "value": 14,
+    "op": "add",
+    "path": "/g"
   }
 ]
 -- diff.json --

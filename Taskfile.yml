@@ -4,6 +4,4 @@ tasks:
   generate:
     dir: './cmd/generate_testdata'
     cmds:
-      - rm -rf ../../testdata/generated
-      - mkdir -p ../../testdata/generated
       - go generate .

@@ -1,0 +1,80 @@
+{
+  "patchLib": "mianxiang"
+}
+-- before.json --
+{
+  "array": [
+    1,
+    "2",
+    3.0,
+    [
+      4,
+      5
+    ],
+    {
+      "key": "value"
+    },
+    true,
+    false,
+    null
+  ]
+}
+-- after.json --
+{
+  "array": [
+    null,
+    false,
+    true,
+    {
+      "key": "value"
+    },
+    [
+      4,
+      5
+    ],
+    3.0,
+    "2",
+    1
+  ]
+}
+
+-- diff.json --
+  {
+    "array": [
+      null
+-     1,
++     false,
+-     "2",
++     true,
+-     3,
++     {
++       "key": "value"
++     },
+-     [
+-       4,
+-       5
+-     ],
++     [
++       4,
++       5
++     ],
+-     {
+-       "key": "value"
+-     },
++     3,
+-     true,
++     "2",
+-     false,
++     1
+    ]
+  }
+-- diff.tf.off --
+  {
+    array = [
+    - 1
+      2
+      3
+    - 4
+    - 5
+    ]
+  }

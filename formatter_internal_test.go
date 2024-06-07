@@ -43,7 +43,8 @@ func Test_compileDiffPatchSeries(t *testing.T) {
 				{Operation: jsonpatch.OperationTest, Path: jsonpointer.NewPointer(), Value: "value"},
 			},
 
-			assertErr: require.Error,
+			assertErr: require.NoError,
+			want:      jsonpatch.Patch{},
 		},
 		{
 			name: "empty source, replace patch",
@@ -154,10 +155,10 @@ func Test_compileDiffPatchSeries(t *testing.T) {
 				{Operation: jsonpatch.OperationTest, Path: jsonpointer.NewPointerFromPath("/array"), Value: []any{}},
 				{Operation: jsonpatch.OperationTest, Path: jsonpointer.NewPointerFromPath("/array/0"), Value: 5},
 				{Operation: jsonpatch.OperationRemove, Path: jsonpointer.NewPointerFromPath("/array/1"), OldValue: 6},
-				{Operation: jsonpatch.OperationTest, Path: jsonpointer.NewPointerFromPath("/array/1"), Value: 7},
-				{Operation: jsonpatch.OperationAdd, Path: jsonpointer.NewPointerFromPath("/array/2"), Value: 8},
-				{Operation: jsonpatch.OperationAdd, Path: jsonpointer.NewPointerFromPath("/array/3"), Value: 9},
-				{Operation: jsonpatch.OperationAdd, Path: jsonpointer.NewPointerFromPath("/array/4"), Value: 10},
+				{Operation: jsonpatch.OperationTest, Path: jsonpointer.NewPointerFromPath("/array/2"), Value: 7},
+				{Operation: jsonpatch.OperationAdd, Path: jsonpointer.NewPointerFromPath("/array/3"), Value: 8},
+				{Operation: jsonpatch.OperationAdd, Path: jsonpointer.NewPointerFromPath("/array/4"), Value: 9},
+				{Operation: jsonpatch.OperationAdd, Path: jsonpointer.NewPointerFromPath("/array/5"), Value: 10},
 			},
 		},
 		{

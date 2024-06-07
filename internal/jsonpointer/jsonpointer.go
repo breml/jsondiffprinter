@@ -48,6 +48,17 @@ func (p Pointer) AppendIndex(i int) Pointer {
 	return pp
 }
 
+func (p *Pointer) IncrementIndex() {
+	if len(*p) == 0 {
+		return
+	}
+	i, err := strconv.ParseInt((*p)[len(*p)-1], 10, 64)
+	if err != nil {
+		return
+	}
+	(*p)[len(*p)-1] = strconv.Itoa(int(i + 1))
+}
+
 func (p *Pointer) DecrementIndex() {
 	if len(*p) == 0 {
 		return
@@ -61,10 +72,18 @@ func (p *Pointer) DecrementIndex() {
 
 func (p Pointer) LessThan(alt Pointer) (b bool) {
 	if p.HasSameAncestorsAs(alt) && (p[len(p)-1] == "-" || alt[len(alt)-1] == "-") {
+		if p[len(p)-1] == "-" && alt[len(alt)-1] == "-" {
+			return true
+		}
 		return p[len(p)-1] != "-"
 	}
 	for i := 0; i < min(len(p), len(alt)); i++ {
 		if p[i] != alt[i] {
+			pi, perr := strconv.Atoi(p[i])
+			alti, alterr := strconv.Atoi(alt[i])
+			if perr == nil && alterr == nil {
+				return pi < alti
+			}
 			return p[i] < alt[i]
 		}
 	}

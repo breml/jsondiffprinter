@@ -6,10 +6,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"hash/crc64"
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	mianxiang "github.com/520MianXiangDuiXiang520/json-diff"
@@ -17,10 +17,9 @@ import (
 	cameront "github.com/cameront/go-jsonpatch"
 	herkyl "github.com/herkyl/patchwerk"
 	mattbaird "github.com/mattbaird/jsonpatch"
+	"github.com/qri-io/jsonpointer"
 	snorwin "github.com/snorwin/jsonpatch"
 	wI2L "github.com/wI2L/jsondiff"
-
-	"github.com/qri-io/jsonpointer"
 	"golang.org/x/tools/txtar"
 )
 
@@ -43,12 +42,40 @@ type metadata struct {
 	PatchLib   *string                   `json:"patchLib,omitempty"`
 }
 
+type State map[string]checksum
+
+type checksum struct {
+	Checksum uint64 `json:"checksum,string"`
+}
+
 func main() {
-	files, err := filepath.Glob(filepath.Join(basePath, "*.txtar"))
+	s, err := os.ReadFile(filepath.Join(basePath, "generated", ".state"))
 	die(err)
 
+	var currentState State
+	err = json.Unmarshal(s, &currentState)
+	die(err)
+
+	h := crc64.New(crc64.MakeTable(crc64.ECMA))
+
+	files, err := filepath.Glob(filepath.Join(basePath, "*.txtar"))
+	die(err)
+	newState := make(State, len(files))
 	for _, filename := range files {
-		fmt.Println("Processing", filename)
+		fmt.Print("Processing", filename, "...")
+
+		fbody, err := os.ReadFile(filename)
+		die(err)
+
+		h.Reset()
+		h.Write(fbody)
+		if currentState[filename].Checksum == h.Sum64() {
+			fmt.Println("unchanged")
+			newState[filename] = currentState[filename]
+			delete(currentState, filename)
+			continue
+		}
+
 		txtarchive, err := txtar.ParseFile(filename)
 		die(err)
 
@@ -113,7 +140,28 @@ func main() {
 		targetFilename := filepath.Join(basePath, "generated", filepath.Base(filename))
 		err = os.WriteFile(targetFilename, buf2.Bytes(), 0o644)
 		die(err)
+
+		fbody, err = os.ReadFile(filename)
+		die(err)
+
+		h.Reset()
+		h.Write(fbody)
+		newState[filename] = checksum{h.Sum64()}
+		delete(currentState, filename)
+
+		fmt.Println("done")
 	}
+
+	for filename := range currentState {
+		err = os.Remove(strings.Replace(filename, "testdata", filepath.Join("testdata", "generated"), 1))
+		die(err)
+	}
+
+	s, err = json.MarshalIndent(newState, "", "  ")
+	die(err)
+
+	err = os.WriteFile(filepath.Join(basePath, "generated", ".state"), s, 0o660)
+	die(err)
 }
 
 func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
@@ -124,100 +172,51 @@ func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
 	err = json.Unmarshal(afterJSON, &after)
 	die(err)
 
-	var marshal bool
+	var unmarshal bool
 	var patch any
 	switch strings.ToLower(patchLib) {
 	case "cameront":
 		patch, err = cameront.MakePatch(before, after)
-		marshal = true
 	case "herkyl":
 		patch, err = herkyl.Diff(beforeJSON, afterJSON)
-		marshal = true
 	case "mattbaird":
 		patch, err = mattbaird.CreatePatch(beforeJSON, afterJSON)
-		marshal = true
 	case "mianxiang":
 		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
+		unmarshal = true
 	case "snorwin":
 		// TODO: add snorwin-threeway
 		var patchList snorwin.JSONPatchList
 		patchList, err = snorwin.CreateJSONPatch(after, before)
 		patch = patchList.Raw()
+		unmarshal = true
 	case "victorlowther":
 		patch, err = victorlowther.Generate(beforeJSON, afterJSON, false)
-		marshal = true
 	case "victorlowther-paranoid":
 		patch, err = victorlowther.Generate(beforeJSON, afterJSON, true)
-		marshal = true
 	case "wi2l":
 		patch, err = wI2L.Compare(before, after)
-		marshal = true
 	default:
 		fmt.Fprintf(os.Stderr, `Unknown patch lib %q, default to "wI2L"`, patchLib)
 		patch, err = wI2L.Compare(before, after)
-		marshal = true
 	}
 	die(err)
 
-	var patchData []byte
-	if marshal {
-		buf := bytes.Buffer{}
-		encoder := json.NewEncoder(&buf)
-		encoder.SetIndent("", "  ")
-		encoder.SetEscapeHTML(false)
-		err = encoder.Encode(patch)
+	if unmarshal {
+		var t wI2L.Patch
+		err = json.Unmarshal(patch.([]byte), &t)
 		die(err)
-		patchData = buf.Bytes()
-	} else {
-		patchData = patch.([]byte)
-		patchData = append(patchData, '\n')
+		patch = t
 	}
 
-	patchData = sortPatch(patchData)
-
-	return append(patchData, '\n')
-}
-
-func sortPatch(in []byte) []byte {
-	var patch wI2L.Patch
-	err := json.Unmarshal(in, &patch)
+	buf := bytes.Buffer{}
+	encoder := json.NewEncoder(&buf)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+	err = encoder.Encode(patch)
 	die(err)
 
-	sort.SliceStable(patch, func(i, j int) bool {
-		return patchLessThan(patch[i], patch[j])
-	})
-
-	in, err = json.MarshalIndent(patch, "", "  ")
-	die(err)
-
-	return in
-}
-
-func patchLessThan(a, b wI2L.Operation) bool {
-	if a.Path == b.Path {
-		return opOrder[a.Type] < opOrder[b.Type]
-	}
-
-	as := strings.Split(a.Path, "/")
-	bs := strings.Split(b.Path, "/")
-
-	for i := 0; i < min(len(as), len(bs)); i++ {
-		if as[i] == "-" || bs[i] == "-" {
-			return as[i] != "-"
-		}
-		if as[i] != bs[i] {
-			return as[i] < bs[i]
-		}
-	}
-
-	return len(as) < len(bs)
-}
-
-var opOrder = map[string]int{
-	"test":    0,
-	"replace": 1,
-	"remove":  2,
-	"add":     3,
+	return buf.Bytes()
 }
 
 func die(err error) {

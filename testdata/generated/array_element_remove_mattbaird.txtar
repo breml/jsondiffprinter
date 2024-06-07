@@ -1,0 +1,40 @@
+{}
+-- before.json --
+{
+  "array": [1, 2, 3, 4, 5]
+}
+-- patch.json --
+[
+  {
+    "op": "remove",
+    "path": "/array/4"
+  },
+  {
+    "op": "remove",
+    "path": "/array/3"
+  },
+  {
+    "op": "remove",
+    "path": "/array/0"
+  }
+]
+-- diff.json --
+  {
+    "array": [
+-     1,
+      2,
+      3,
+-     4,
+-     5
+    ]
+  }
+-- diff.tf --
+  {
+    array = [
+    - 1
+      2
+      3
+    - 4
+    - 5
+    ]
+  }
