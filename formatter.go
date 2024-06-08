@@ -106,14 +106,43 @@ func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
 
 type valueType int
 
+type notePosition int
+
+const (
+	notePositionKey notePosition = iota
+	notePositionValue
+	notePositionEnd
+)
+
+func (v valueType) notePos() notePosition {
+	switch v {
+	case valueTypePlain:
+		return notePositionValue
+	case valueTypeObject:
+		return notePositionKey
+	case valueTypeJSONinJSONObject:
+		return notePositionEnd
+	case valueTypeArray:
+		return notePositionKey
+	case valueTypeJSONinJSONArray:
+		return notePositionEnd
+	default:
+		panic("undefined value type")
+	}
+}
+
 func (v valueType) leftBracket() string {
 	switch v {
 	case valueTypePlain:
 		return ""
 	case valueTypeObject:
 		return "{"
+	case valueTypeJSONinJSONObject:
+		return "jsonencode("
 	case valueTypeArray:
 		return "["
+	case valueTypeJSONinJSONArray:
+		return "jsonencode("
 	default:
 		panic("undefined value type")
 	}
@@ -125,17 +154,23 @@ func (v valueType) rightBracket() string {
 		return ""
 	case valueTypeObject:
 		return "}"
+	case valueTypeJSONinJSONObject:
+		return ")"
 	case valueTypeArray:
 		return "]"
+	case valueTypeJSONinJSONArray:
+		return ")"
 	default:
 		panic("undefined value type")
 	}
 }
 
 const (
-	valueTypePlain = iota
+	valueTypePlain valueType = iota
 	valueTypeObject
+	valueTypeJSONinJSONObject
 	valueTypeArray
+	valueTypeJSONinJSONArray
 )
 
 // Format writes the formatted representation of the jsonpatch applied to the
@@ -153,15 +188,15 @@ const (
 // specification. In the second case is the argument marshaled to JSON before
 // being processed.
 func (f Formatter) Format(original any, jsonpatch any) error {
-	beforePatchTestSeries, err := asPatchTestSeries(original, jsonpointer.NewPointer())
+	originalPatchTestSeries, err := f.asPatchTestSeries(original, jsonpointer.NewPointer())
 	if err != nil {
-		return fmt.Errorf("failed to convert original JSON document to JSON patch series: %w", err)
+		return fmt.Errorf("failed to convert JSON document to JSON patch series: %w", err)
 	}
-	patch, err := patchFromAny(jsonpatch)
+	patch, err := f.patchFromAny(jsonpatch)
 	if err != nil {
 		return fmt.Errorf("failed to process JSON patch: %w", err)
 	}
-	diff, err := compileDiffPatchSeries(beforePatchTestSeries, patch)
+	diff, err := f.compileDiffPatchSeries(originalPatchTestSeries, patch)
 	if err != nil {
 		return fmt.Errorf("failed to compile diff patch series: %w", err)
 	}
@@ -192,7 +227,7 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 	}
 
 	for i = 0; i < len(patch); i++ {
-		op := patch[i]
+		op := patch[i].Clone()
 		currentPath := op.Path
 
 		if !currentPath.IsEmpty() && !parentPath.IsParentOf(currentPath) {
@@ -208,6 +243,43 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 		switch op.Operation {
 		case jsonpatch.OperationTest:
 			switch op.Value.(type) {
+			case jsonInJSONObject:
+				buf := &bytes.Buffer{}
+				fNew := f
+				fNew.w = buf
+				fNew.prefix += fNew.indentation
+
+				endIndex := i + 1
+				for ; endIndex < len(patch); endIndex++ {
+					if !currentPath.IsAncestorOf(patch[endIndex].Path) {
+						break
+					}
+				}
+
+				patch[i].Value = map[string]any(patch[i].Value.(jsonInJSONObject))
+				delete(patch[i].Metadata, "note")
+				ii, changed := fNew.printPatch(patch[i:endIndex], currentPath[:max(0, len(currentPath)-1)], true)
+				i += ii - 1
+
+				if f.hideUnchanged && !changed {
+					unchangedAttributes++
+					continue
+				}
+
+				if len(currentPath) > 0 {
+					op.Operation = jsonpatch.OperationReplace
+				}
+				hasChange = true
+				f.printOp(printOpConfig{
+					preDiffMarkerIndent: preDiffMarkerIndent,
+					indent:              indent,
+					key:                 currentKey,
+					value:               buf.String(),
+					valType:             valueTypeJSONinJSONObject,
+					op:                  op,
+					withKey:             true,
+				})
+
 			case map[string]any:
 				buf := &bytes.Buffer{}
 				fNew := f
@@ -228,6 +300,43 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 					key:                 currentKey,
 					value:               buf.String(),
 					valType:             valueTypeObject,
+					op:                  op,
+					withKey:             true,
+				})
+
+			case jsonInJSONArray:
+				buf := &bytes.Buffer{}
+				fNew := f
+				fNew.w = buf
+				fNew.prefix += fNew.indentation
+
+				endIndex := i + 1
+				for ; endIndex < len(patch); endIndex++ {
+					if !currentPath.IsAncestorOf(patch[endIndex].Path) {
+						break
+					}
+				}
+
+				patch[i].Value = []any(patch[i].Value.(jsonInJSONArray))
+				delete(patch[i].Metadata, "note")
+				ii, changed := fNew.printPatch(patch[i:endIndex], currentPath[:max(0, len(currentPath)-1)], true)
+				i += ii - 1
+
+				if f.hideUnchanged && !changed {
+					unchangedAttributes++
+					continue
+				}
+
+				if len(currentPath) > 0 {
+					op.Operation = jsonpatch.OperationReplace
+				}
+				hasChange = true
+				f.printOp(printOpConfig{
+					preDiffMarkerIndent: preDiffMarkerIndent,
+					indent:              indent,
+					key:                 currentKey,
+					value:               buf.String(),
+					valType:             valueTypeJSONinJSONArray,
 					op:                  op,
 					withKey:             true,
 				})
@@ -300,12 +409,6 @@ func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Poin
 		case jsonpatch.OperationReplace:
 			hasChange = true
 
-			if f.jsonInJSONComparer != nil {
-				if ok := f.processJSONInJSON(op, currentPath, preDiffMarkerIndent, indent, currentKey); ok {
-					continue
-				}
-			}
-
 			vold := f.formatIndent(op.OldValue, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(jsonpatch.OperationRemove))
 			v := f.formatIndent(op.Value, strings.Repeat(f.indentation, len(currentPath)), f.opTypeIndicator(jsonpatch.OperationAdd))
 			f.printOp(printOpConfig{
@@ -371,12 +474,19 @@ func (f Formatter) printOp(cfg printOpConfig) {
 		return
 	}
 
-	keyNote := ""
+	leftBracket := ""
 	valueNote := ""
+	endNote := ""
 	if len(cfg.valType.leftBracket()) > 0 {
-		keyNote = cfg.valType.leftBracket() + cfg.op.Metadata["note"] + "\n"
-	} else {
+		leftBracket = cfg.valType.leftBracket() + "\n"
+	}
+	switch cfg.valType.notePos() {
+	case notePositionKey:
+		leftBracket = cfg.valType.leftBracket() + cfg.op.Metadata["note"] + "\n"
+	case notePositionValue:
 		valueNote = cfg.op.Metadata["note"]
+	case notePositionEnd:
+		endNote = cfg.op.Metadata["note"]
 	}
 
 	opTypeIndicator := f.opTypeIndicator(cfg.op.Operation)
@@ -385,7 +495,7 @@ func (f Formatter) printOp(cfg printOpConfig) {
 	}
 
 	if cfg.withKey {
-		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, opTypeIndicator, cfg.indent, cfg.key, keyNote)
+		fmt.Fprintf(f.w, "%s%s %s%s%s", cfg.preDiffMarkerIndent, opTypeIndicator, cfg.indent, cfg.key, leftBracket)
 	} else {
 		fmt.Fprint(f.w, "  ")
 	}
@@ -394,7 +504,7 @@ func (f Formatter) printOp(cfg printOpConfig) {
 	}
 	fmt.Fprint(f.w, cfg.value, valueNote)
 	if cfg.valType.rightBracket() != "" {
-		fmt.Fprintf(f.w, "%s  %s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.rightBracket())
+		fmt.Fprintf(f.w, "%s  %s%s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.rightBracket(), endNote)
 	}
 }
 
@@ -411,71 +521,6 @@ func (f Formatter) opTypeIndicator(opType jsonpatch.OperationType) string {
 	default:
 		panic("not supported operation type")
 	}
-}
-
-func (f Formatter) processJSONInJSON(op jsonpatch.Operation, currentPath jsonpointer.Pointer, preDiffMarkerIndent, indent, currentKey string) bool {
-	var oldValue, value string
-	var ok bool
-
-	if oldValue, ok = op.OldValue.(string); !ok {
-		return false
-	}
-	if value, ok = op.Value.(string); !ok {
-		return false
-	}
-
-	var oldValuejInjMap map[string]any
-	var oldValuejInjArray []any
-	var valuejInjMap map[string]any
-	var valuejInjArray []any
-
-	oldValueMapErr := json.Unmarshal([]byte(oldValue), &oldValuejInjMap)
-	oldValueArrayErr := json.Unmarshal([]byte(oldValue), &oldValuejInjArray)
-	valueMapErr := json.Unmarshal([]byte(value), &valuejInjMap)
-	valueArrayErr := json.Unmarshal([]byte(value), &valuejInjArray)
-
-	var oldVal, val any
-	switch {
-	case oldValueMapErr == nil && valueMapErr == nil:
-		oldVal = oldValuejInjMap
-		val = valuejInjMap
-	case oldValueArrayErr == nil && valueArrayErr == nil:
-		oldVal = oldValuejInjArray
-		val = valuejInjArray
-	default:
-		return false
-	}
-
-	patch, err := f.jsonInJSONComparer(oldVal, val)
-	if err != nil {
-		return false
-	}
-
-	buf := &bytes.Buffer{}
-	fNew := f
-	fNew.w = buf
-	fNew.prefix = preDiffMarkerIndent + f.indentation
-
-	err = fNew.Format(oldVal, patch)
-	if err != nil {
-		return false
-	}
-
-	withKey := !currentPath.IsEmpty() || !f.omitChangeIndicatorOnEmptyKey
-	v := fmt.Sprintf("jsonencode(\n%s%s  %s%s%[1]s%[3]s  )", preDiffMarkerIndent, f.indentation, indent, strings.Trim(buf.String(), " "))
-	opReplace := op
-	opReplace.Operation = jsonpatch.OperationReplace
-	f.printOp(printOpConfig{
-		preDiffMarkerIndent: preDiffMarkerIndent,
-		indent:              indent,
-		key:                 currentKey,
-		value:               v,
-		op:                  opReplace,
-		withKey:             withKey,
-	})
-	fmt.Fprint(f.w, "\n")
-
-	return true
 }
 
 // printCommaOrNot prints a comma if the next operation is in the same path.
@@ -496,6 +541,20 @@ func (f Formatter) printCommaOrNot(i int, patch jsonpatch.Patch, op jsonpatch.Op
 
 func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 	switch vt := v.(type) {
+	case jsonInJSONObject:
+		sb := strings.Builder{}
+		sb.WriteString("jsonencode(\n")
+		sb.WriteString(f.prefix + prefix + f.indentation + "  ")
+		sb.WriteString(f.formatIndent(map[string]any(vt), prefix+f.indentation, operation))
+		sb.WriteString("\n" + f.prefix + prefix + "  " + ")")
+		return sb.String()
+	case jsonInJSONArray:
+		sb := strings.Builder{}
+		sb.WriteString("jsonencode(\n")
+		sb.WriteString(f.prefix + prefix + f.indentation + "  ")
+		sb.WriteString(f.formatIndent([]any(vt), prefix+f.indentation, operation))
+		sb.WriteString("\n" + f.prefix + prefix + "  " + ")")
+		return sb.String()
 	case map[string]any:
 		sb := strings.Builder{}
 		sb.WriteString("{\n")
@@ -556,39 +615,13 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 		return sb.String()
 
 	default:
-		var jsonEncode bool
-		if str, ok := vt.(string); ok && f.jsonInJSONComparer != nil {
-			var jInjMap map[string]any
-			var jInjArray map[string]any
-
-			mapErr := json.Unmarshal([]byte(str), &jInjMap)
-			arrayErr := json.Unmarshal([]byte(str), &jInjArray)
-
-			if mapErr == nil {
-				vt = jInjMap
-				jsonEncode = true
-			}
-			if arrayErr == nil {
-				vt = jInjArray
-				jsonEncode = true
-			}
-		}
-
 		sb := strings.Builder{}
 		encoder := json.NewEncoder(&sb)
-		jsonInJSONPrefix := f.prefix + prefix + "  "
-		if jsonEncode {
-			jsonInJSONPrefix += f.indentation
-			sb.WriteString("jsonencode(\n" + jsonInJSONPrefix)
-		}
-		encoder.SetIndent(jsonInJSONPrefix, f.indentation)
+		encoder.SetIndent(f.prefix+prefix+"  ", f.indentation)
 		encoder.SetEscapeHTML(false)
 		err := encoder.Encode(vt)
 		if err != nil {
 			return fmt.Sprintf("<format error> %v%s%v", vt, f.keyValueSeparator, err)
-		}
-		if jsonEncode {
-			sb.WriteString(f.prefix + prefix + "  " + ")")
 		}
 
 		return strings.Trim(sb.String(), " \n")
@@ -597,8 +630,16 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 
 const defaultPatchAllocationSize = 32
 
-func asPatchTestSeries(value any, path jsonpointer.Pointer) (jsonpatch.Patch, error) {
+func (f Formatter) asPatchTestSeries(inValue any, path jsonpointer.Pointer) (jsonpatch.Patch, error) {
 	patches := make(jsonpatch.Patch, 0, defaultPatchAllocationSize)
+
+	value := inValue
+	if v, ok := value.(jsonInJSONObject); ok {
+		value = map[string]any(v)
+	}
+	if v, ok := value.(jsonInJSONArray); ok {
+		value = []any(v)
+	}
 
 	switch t := value.(type) {
 	case []byte:
@@ -609,19 +650,20 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) (jsonpatch.Patch, er
 		if err != nil {
 			return nil, err
 		}
-		patches, err = asPatchTestSeries(value, path)
+		patches, err = f.asPatchTestSeries(value, path)
 		if err != nil {
 			return nil, err
 		}
+
 	case map[string]any:
 		patches = append(patches, jsonpatch.Operation{
 			Operation: jsonpatch.OperationTest,
 			Path:      path,
-			Value:     value,
+			Value:     inValue,
 		})
 
 		for _, k := range keys(t) {
-			ps, err := asPatchTestSeries(t[k], path.Append(k))
+			ps, err := f.asPatchTestSeries(t[k], path.AppendKey(k))
 			if err != nil {
 				return nil, err
 			}
@@ -632,11 +674,11 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) (jsonpatch.Patch, er
 		patches = append(patches, jsonpatch.Operation{
 			Operation: jsonpatch.OperationTest,
 			Path:      path,
-			Value:     value,
+			Value:     inValue,
 		})
 
 		for i, v := range t {
-			ps, err := asPatchTestSeries(v, path.AppendIndex(i))
+			ps, err := f.asPatchTestSeries(v, path.AppendIndex(i))
 			if err != nil {
 				return nil, err
 			}
@@ -644,11 +686,27 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) (jsonpatch.Patch, er
 		}
 
 	// All other types, that are used by encoding/json.Unmarshal to []any or map[string]any.
-	case bool, float64, string, nil:
+	case bool, float64, nil:
 		patches = append(patches, jsonpatch.Operation{
 			Operation: jsonpatch.OperationTest,
 			Path:      path,
 			Value:     value,
+		})
+
+	case string:
+		var unmarshaledValue any
+
+		if f.jsonInJSONComparer != nil {
+			if jsonValue, ok := asJSONInJSON(t); ok {
+				unmarshaledValue = jsonValue
+			}
+		}
+
+		patches = append(patches, jsonpatch.Operation{
+			Operation:        jsonpatch.OperationTest,
+			Path:             path,
+			Value:            value,
+			UnmarshaledValue: unmarshaledValue,
 		})
 
 	default:
@@ -658,7 +716,33 @@ func asPatchTestSeries(value any, path jsonpointer.Pointer) (jsonpatch.Patch, er
 	return patches, nil
 }
 
-func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {
+type (
+	jsonInJSONObject map[string]any
+	jsonInJSONArray  []any
+)
+
+func asJSONInJSON(v any) (any, bool) {
+	value, ok := v.(string)
+	if !ok {
+		return nil, false
+	}
+
+	var valuejInjMap map[string]any
+	valueMapErr := json.Unmarshal([]byte(value), &valuejInjMap)
+	if valueMapErr == nil {
+		return jsonInJSONObject(valuejInjMap), true
+	}
+
+	var valuejInjArray []any
+	valueArrayErr := json.Unmarshal([]byte(value), &valuejInjArray)
+	if valueArrayErr == nil {
+		return jsonInJSONArray(valuejInjArray), true
+	}
+
+	return nil, false
+}
+
+func (f Formatter) compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {
 	if len(src) == 0 {
 		src = jsonpatch.Patch{}
 	}
@@ -667,6 +751,10 @@ func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpat
 		patchOp := patch[opIndex]
 		switch patchOp.Operation {
 		case jsonpatch.OperationAdd:
+			if f.jsonInJSONComparer != nil && patchOp.UnmarshaledValue != nil {
+				patchOp.Value = patchOp.UnmarshaledValue
+			}
+
 			if patchOp.Path.IsEmpty() {
 				op := jsonpatch.Operation{}
 				if len(src) > 0 {
@@ -731,15 +819,53 @@ func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpat
 				return nil, fmt.Errorf("path %q not found in original", patchOp.Path.String())
 			}
 
-			patchOp.OldValue = src[i].Value
-			src[i] = patchOp
-
 			for j := i; j < len(src); j++ {
 				if patchOp.Path.IsParentOf(src[j].Path) {
 					src = slices.Delete(src, j, j+1)
 					j--
 				}
 			}
+
+			if f.jsonInJSONComparer != nil && src[i].UnmarshaledValue != nil && patchOp.UnmarshaledValue != nil {
+				var diff jsonpatch.Patch
+				err := func() error {
+					jpatch, err := f.jsonInJSONComparer(src[i].UnmarshaledValue, patchOp.UnmarshaledValue)
+					if err != nil {
+						return err
+					}
+
+					originalPatchTestSeries, err := f.asPatchTestSeries(src[i].UnmarshaledValue, jsonpointer.NewPointer())
+					if err != nil {
+						return err
+					}
+
+					patch, err := f.patchFromAny(jpatch)
+					if err != nil {
+						return err
+					}
+
+					diff, err = f.compileDiffPatchSeries(originalPatchTestSeries, patch)
+					if err != nil {
+						return err
+					}
+
+					return nil
+				}()
+				// Only consider JSON in JSON if comparing does not return any error,
+				// fall back to normal processing otherwise.
+				if nil == err {
+					for j := range diff {
+						diff[j].Path = src[i].Path.Append(diff[j].Path)
+					}
+
+					src = slices.Replace(src, i, i+1, diff[0:]...)
+
+					break
+				}
+			}
+
+			patchOp.OldValue = src[i].Value
+			src[i] = patchOp
 
 		case jsonpatch.OperationRemove:
 			i, ok := findPatchIndex(src, patchOp.Path)
@@ -748,6 +874,9 @@ func compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpat
 			}
 
 			patchOp.OldValue = src[i].Value
+			if f.jsonInJSONComparer != nil && src[i].UnmarshaledValue != nil {
+				patchOp.OldValue = src[i].UnmarshaledValue
+			}
 			src[i] = patchOp
 
 			for j := opIndex + 1; j < len(patch); j++ {
@@ -788,7 +917,7 @@ func keys(m map[string]any) []string {
 	return keys
 }
 
-func patchFromAny(value any) (jsonpatch.Patch, error) {
+func (f Formatter) patchFromAny(value any) (jsonpatch.Patch, error) {
 	var jsonbody []byte
 	var err error
 
@@ -810,5 +939,14 @@ func patchFromAny(value any) (jsonpatch.Patch, error) {
 	if err != nil {
 		return jsonpatch.Patch{}, err
 	}
+
+	if f.jsonInJSONComparer != nil {
+		for i := range patch {
+			if jsonValue, ok := asJSONInJSON(patch[i].Value); ok {
+				patch[i].UnmarshaledValue = jsonValue
+			}
+		}
+	}
+
 	return patch, nil
 }

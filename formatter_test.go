@@ -40,7 +40,7 @@ func TestFormatter(t *testing.T) {
 			txtar, err := txtar.ParseFile(filename)
 			require.NoError(t, err)
 
-			var before interface{}
+			var before any
 			err = json.Unmarshal(txtarFileByName(t, txtar, "before.json").Data, &before)
 			require.NoError(t, err)
 

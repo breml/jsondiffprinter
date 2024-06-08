@@ -90,7 +90,7 @@ func main() {
 		beforeJSON := txtarchive.Files[0].Data
 		afterJSON := txtarchive.Files[1].Data
 
-		var before, after interface{}
+		var before, after any
 		err = json.Unmarshal(beforeJSON, &before)
 		die(err)
 
@@ -153,8 +153,13 @@ func main() {
 	}
 
 	for filename := range currentState {
+		fmt.Print("Remove", filename, "...")
 		err = os.Remove(strings.Replace(filename, "testdata", filepath.Join("testdata", "generated"), 1))
-		die(err)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		fmt.Println("done")
 	}
 
 	s, err = json.MarshalIndent(newState, "", "  ")
@@ -165,7 +170,7 @@ func main() {
 }
 
 func compare(patchLib string, beforeJSON, afterJSON []byte) []byte {
-	var before, after interface{}
+	var before, after any
 	err := json.Unmarshal(beforeJSON, &before)
 	die(err)
 

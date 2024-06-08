@@ -173,7 +173,7 @@ func TestPointerAppend(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.want, tc.pointer.Append(tc.token))
+			require.Equal(t, tc.want, tc.pointer.AppendKey(tc.token))
 		})
 	}
 }
@@ -274,6 +274,80 @@ func TestPointerIsParentOf(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.want, tc.parent.IsParentOf(tc.child))
+		})
+	}
+}
+
+func TestPointerIsAncestorOf(t *testing.T) {
+	tt := []struct {
+		name string
+
+		ancestor  jsonpointer.Pointer
+		successor jsonpointer.Pointer
+
+		want bool
+	}{
+		{
+			name: "success - empty pointers",
+
+			ancestor:  jsonpointer.Pointer(nil),
+			successor: jsonpointer.Pointer(nil),
+
+			want: false,
+		},
+		{
+			name: "success - empty ancestor",
+
+			ancestor:  jsonpointer.Pointer(nil),
+			successor: jsonpointer.Pointer([]string{"foo"}),
+
+			want: true,
+		},
+		{
+			name: "success - empty successor",
+
+			ancestor:  jsonpointer.Pointer([]string{"foo"}),
+			successor: jsonpointer.Pointer(nil),
+
+			want: false,
+		},
+		{
+			name: "success - equal pointers",
+
+			ancestor:  jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
+			successor: jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
+
+			want: false,
+		},
+		{
+			name: "success - ancestor is parent of successor",
+
+			ancestor:  jsonpointer.Pointer([]string{"foo", "bar"}),
+			successor: jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
+
+			want: true,
+		},
+		{
+			name: "success - ancestor is not parent of successor",
+
+			ancestor:  jsonpointer.Pointer([]string{"foo", "baz"}),
+			successor: jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
+
+			want: false,
+		},
+		{
+			name: "success - ancestor is grand-parent of successor",
+
+			ancestor:  jsonpointer.Pointer([]string{"foo"}),
+			successor: jsonpointer.Pointer([]string{"foo", "bar", "baz"}),
+
+			want: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, tc.ancestor.IsAncestorOf(tc.successor))
 		})
 	}
 }
