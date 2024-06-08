@@ -51,8 +51,8 @@ func (p Patch) GoString() string {
 
 // Operation represents a single JSON Patch (RFC6902) operation.
 type Operation struct {
-	Value     interface{}   `json:"value,omitempty"`
-	OldValue  interface{}   `json:"-"`
+	Value     any           `json:"value,omitempty"`
+	OldValue  any           `json:"oldValue"`
 	Operation OperationType `json:"op"`
 	// FIXME: From is not used by this package as of now, since we do not support move and copy operations.
 	// From string `json:"from,omitempty"`

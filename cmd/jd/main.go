@@ -132,7 +132,7 @@ func (a *App) Run(ctx *cli.Context) error {
 		return fmt.Errorf("failed to read after.json: %w", err)
 	}
 
-	var before, after interface{}
+	var before, after any
 	err = json.Unmarshal(beforeJSON, &before)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal before.json: %w", err)
