@@ -138,11 +138,11 @@ func (v valueType) leftBracket() string {
 	case valueTypeObject:
 		return "{"
 	case valueTypeJSONinJSONObject:
-		return fmt.Sprintf("jsonencode(")
+		return "jsonencode("
 	case valueTypeArray:
 		return "["
 	case valueTypeJSONinJSONArray:
-		return fmt.Sprintf("jsonencode(")
+		return "jsonencode("
 	default:
 		panic("undefined value type")
 	}
@@ -155,11 +155,11 @@ func (v valueType) rightBracket() string {
 	case valueTypeObject:
 		return "}"
 	case valueTypeJSONinJSONObject:
-		return fmt.Sprintf(")")
+		return ")"
 	case valueTypeArray:
 		return "]"
 	case valueTypeJSONinJSONArray:
-		return fmt.Sprintf(")")
+		return ")"
 	default:
 		panic("undefined value type")
 	}
