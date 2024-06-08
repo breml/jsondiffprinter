@@ -49,15 +49,11 @@ func withTabwriter(want, got string) string {
 	wantLines := strings.Split(want, "\n")
 	gotLines := strings.Split(got, "\n")
 
-	minLens := min(len(wantLines), len(gotLines))
-	for i := 0; i < minLens; i++ {
+	wantLines = append(wantLines, make([]string, max(len(wantLines), len(gotLines))-len(wantLines))...)
+	gotLines = append(gotLines, make([]string, max(len(wantLines), len(gotLines))-len(gotLines))...)
+
+	for i := 0; i < len(wantLines); i++ {
 		fmt.Fprintf(w, "%s\t%s\n", wantLines[i], gotLines[i])
-	}
-	for i := minLens; i < len(wantLines); i++ {
-		fmt.Fprintf(w, "%s\n", wantLines[i])
-	}
-	for i := minLens; i < len(gotLines); i++ {
-		fmt.Fprintf(w, "\t%s\n", gotLines[i])
 	}
 	w.Flush()
 
