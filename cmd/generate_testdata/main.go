@@ -153,8 +153,13 @@ func main() {
 	}
 
 	for filename := range currentState {
+		fmt.Print("Remove", filename, "...")
 		err = os.Remove(strings.Replace(filename, "testdata", filepath.Join("testdata", "generated"), 1))
-		die(err)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		fmt.Println("done")
 	}
 
 	s, err = json.MarshalIndent(newState, "", "  ")
