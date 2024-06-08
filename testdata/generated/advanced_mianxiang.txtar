@@ -87,8 +87,30 @@
     )
     # (1 unchanged attribute hidden)
   }
+-- jsonInJSON.0.json --
+[
+  {
+    "value": "new foo",
+    "op": "replace",
+    "path": "/0"
+  },
+  {
+    "value": "baz",
+    "op": "add",
+    "path": "/2"
+  }
+]
 -- jsonInJSON.1.json --
 [
+  {
+    "value": "new value",
+    "op": "replace",
+    "path": "/object_changed/key"
+  },
+  {
+    "op": "remove",
+    "path": "/object_removed"
+  },
   {
     "op": "remove",
     "path": "/array_item_removed/1"
@@ -98,27 +120,9 @@
     "path": "/number_removed"
   },
   {
-    "op": "remove",
-    "path": "/object_removed"
-  },
-  {
-    "value": "new value",
-    "op": "replace",
-    "path": "/object_changed/key"
-  },
-  {
     "value": "bar changed",
     "op": "replace",
     "path": "/string_changed"
-  },
-  {
-    "value": 14,
-    "op": "replace",
-    "path": "/number_changed"
-  },
-  {
-    "op": "remove",
-    "path": "/array_removed"
   },
   {
     "value": "biz",
@@ -128,6 +132,11 @@
   {
     "op": "remove",
     "path": "/string_removed"
+  },
+  {
+    "value": 14,
+    "op": "replace",
+    "path": "/number_changed"
   },
   {
     "value": "foo2",
@@ -140,6 +149,15 @@
     "path": "/array_changed/2"
   },
   {
+    "op": "remove",
+    "path": "/array_removed"
+  },
+  {
+    "value": "new",
+    "op": "add",
+    "path": "/string_new"
+  },
+  {
     "value": [
       "foo",
       "bar",
@@ -149,33 +167,15 @@
     "path": "/array_new"
   },
   {
-    "value": "new",
-    "op": "add",
-    "path": "/string_new"
-  },
-  {
-    "value": 14,
-    "op": "add",
-    "path": "/number_new"
-  },
-  {
     "value": {
       "key": "value"
     },
     "op": "add",
     "path": "/object_new"
-  }
-]
--- jsonInJSON.0.json --
-[
-  {
-    "value": "new foo",
-    "op": "replace",
-    "path": "/0"
   },
   {
-    "value": "baz",
+    "value": 14,
     "op": "add",
-    "path": "/2"
+    "path": "/number_new"
   }
 ]

@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	mianxiang "github.com/520MianXiangDuiXiang520/json-diff"
@@ -107,7 +108,18 @@ func main() {
 		txtarchive.Files[1].Data = compare(patchLib, beforeJSON, afterJSON)
 		txtarchive.Files[1].Name = "patch.json"
 
-		for i, pointer := range metadata.JSONInJSON {
+		var patch wI2L.Patch
+		err = json.Unmarshal(txtarchive.Files[1].Data, &patch)
+		die(err)
+
+		orderedJSONInJSON := make([]string, 0, len(metadata.JSONInJSON))
+		for _, op := range patch {
+			if slices.Contains(metadata.JSONInJSON, op.Path) {
+				orderedJSONInJSON = append(orderedJSONInJSON, op.Path)
+			}
+		}
+
+		for i, pointer := range orderedJSONInJSON {
 			ptr, err := jsonpointer.Parse(pointer)
 			die(err)
 
