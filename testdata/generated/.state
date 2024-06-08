@@ -1,9 +1,9 @@
 {
   "../../testdata/advanced.txtar": {
-    "checksum": "14917684583732982198"
+    "checksum": "12069903648538444885"
   },
   "../../testdata/advanced_mianxiang.txtar": {
-    "checksum": "9148239516385585667"
+    "checksum": "5413378278878559540"
   },
   "../../testdata/array.txtar": {
     "checksum": "17068550288242514599"
@@ -42,7 +42,7 @@
     "checksum": "17951181916272195793"
   },
   "../../testdata/json_in_json_small.txtar": {
-    "checksum": "10721328409364306805"
+    "checksum": "10825381817062171312"
   },
   "../../testdata/null_2_string.txtar": {
     "checksum": "8884358695878970600"

@@ -21,11 +21,13 @@ type metadata struct {
 		IndentedDiffMarkers *bool   `json:"indentedDiffMarkers"`
 		Commas              *bool   `json:"commas"`
 		HideUnchanged       *bool   `json:"hideUnchanged"`
+		JSONInJSON          *bool   `json:"jsonInJSON"`
 	} `json:"json"`
 	Terraform struct {
 		Indentation   *string `json:"indentation"`
 		HideUnchanged *bool   `json:"hideUnchanged"`
 		MetadataAdder *bool   `json:"metadataAdder"`
+		JSONInJSON    *bool   `json:"jsonInJSON"`
 	} `json:"terraform"`
 	Metadata map[string]map[string]string `json:"metadata"`
 }
@@ -70,7 +72,6 @@ func TestFormatter(t *testing.T) {
 				jsondiffprinter.WithColor(false),
 				jsondiffprinter.WithIndentation("  "),
 				jsondiffprinter.WithHideUnchanged(true),
-				jsondiffprinter.WithJSONinJSONCompare(jsonInJSONCompare),
 			)
 
 			if metadata.JSON.Indentation != nil {
@@ -88,6 +89,10 @@ func TestFormatter(t *testing.T) {
 				jsonOptions = append(jsonOptions, jsondiffprinter.WithHideUnchanged(*metadata.JSON.HideUnchanged))
 			}
 
+			if metadata.JSON.JSONInJSON != nil && *metadata.JSON.JSONInJSON == true {
+				jsonOptions = append(jsonOptions, jsondiffprinter.WithJSONinJSONCompare(jsonInJSONCompare))
+			}
+
 			if metadata.Terraform.Indentation != nil {
 				terraformOptions = append(terraformOptions, jsondiffprinter.WithIndentation(*metadata.Terraform.Indentation))
 			}
@@ -98,6 +103,10 @@ func TestFormatter(t *testing.T) {
 
 			if metadata.Terraform.MetadataAdder != nil {
 				terraformOptions = append(terraformOptions, jsondiffprinter.WithPatchSeriesPostProcess(metadataByJSONPointer(t, metadata.Metadata)))
+			}
+
+			if metadata.Terraform.JSONInJSON != nil && *metadata.Terraform.JSONInJSON == true {
+				terraformOptions = append(terraformOptions, jsondiffprinter.WithJSONinJSONCompare(jsonInJSONCompare))
 			}
 
 			var buf bytes.Buffer

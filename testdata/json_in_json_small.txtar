@@ -1,15 +1,44 @@
+{
+  "json": {
+    "jsonInJSON": true
+  },
+  "terraform": {
+    "jsonInJSON": true
+  },
+  "jsonInJSON": [
+    "/update",
+    "/delete",
+    "/add"
+  ]
+}
 -- before.json --
 {
+  "update": "{\"key\":\"value\"}",
   "delete": "{\"key\":\"value\"}"
 }
 -- after.json --
 {
-  "add": "{\"key\":\"value\"}"
+  "add": "{\"key\":\"value\"}",
+  "update": "{\"key\":\"newvalue\"}"
 }
 -- diff.json --
   {
-+   "add": "{\"key\":\"value\"}",
--   "delete": "{\"key\":\"value\"}"
++   "add": embeddedJSON(
+      {
++       "key": "value"
+      }
+    ),
+-   "delete": embeddedJSON(
+      {
+-       "key": "value"
+      }
+    ),
++   "update": embeddedJSON(
+      {
+  -     "key": "value"
+  +     "key": "newvalue"
+      }
+    )
   }
 -- diff.tf --
   {
@@ -21,6 +50,11 @@
   - delete = jsonencode(
       {
       - key = "value"
+      }
+    )
+  ~ update = jsonencode(
+      {
+      ~ key = "value" -> "newvalue"
       }
     )
   }

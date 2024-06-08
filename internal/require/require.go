@@ -42,6 +42,9 @@ func EqualStringWithTabwriter(t *testing.T, want, got string) {
 }
 
 func withTabwriter(want, got string) string {
+	want = strings.ReplaceAll(want, " ", "·")
+	got = strings.ReplaceAll(got, " ", "·")
+
 	buf := bytes.NewBufferString("\n")
 	w := tabwriter.NewWriter(buf, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "want:\tgot:\n=====\t====\n\t")

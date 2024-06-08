@@ -1,4 +1,8 @@
-{}
+{
+  "terraform": {
+    "jsonInJSON": true
+  }
+}
 -- before.json --
 {
   "array": "[\"foo\",\"bar\"]",
@@ -99,18 +103,13 @@
 -- jsonInJSON.1.json --
 [
   {
-    "value": "foo2",
+    "value": "new value",
     "op": "replace",
-    "path": "/array_changed/0"
-  },
-  {
-    "value": "baz2",
-    "op": "replace",
-    "path": "/array_changed/2"
+    "path": "/object_changed/key"
   },
   {
     "op": "remove",
-    "path": "/string_removed"
+    "path": "/object_removed"
   },
   {
     "op": "remove",
@@ -119,15 +118,6 @@
   {
     "op": "remove",
     "path": "/number_removed"
-  },
-  {
-    "op": "remove",
-    "path": "/array_removed"
-  },
-  {
-    "value": 14,
-    "op": "replace",
-    "path": "/number_changed"
   },
   {
     "value": "bar changed",
@@ -141,12 +131,26 @@
   },
   {
     "op": "remove",
-    "path": "/object_removed"
+    "path": "/string_removed"
   },
   {
-    "value": "new value",
+    "value": 14,
     "op": "replace",
-    "path": "/object_changed/key"
+    "path": "/number_changed"
+  },
+  {
+    "value": "foo2",
+    "op": "replace",
+    "path": "/array_changed/0"
+  },
+  {
+    "value": "baz2",
+    "op": "replace",
+    "path": "/array_changed/2"
+  },
+  {
+    "op": "remove",
+    "path": "/array_removed"
   },
   {
     "value": "new",

@@ -1,4 +1,8 @@
-{}
+{
+  "terraform": {
+    "jsonInJSON": true
+  }
+}
 -- before.json --
 {
   "array": "[\"foo\",\"bar\"]",
