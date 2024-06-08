@@ -24,12 +24,12 @@
   {
   + add = jsonencode(
       {
-        "key": "value"
+      + key = "value"
       }
     )
   - delete = jsonencode(
       {
-        "key": "value"
+      - key = "value"
       }
     )
   }

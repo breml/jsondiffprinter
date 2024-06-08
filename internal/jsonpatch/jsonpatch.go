@@ -54,11 +54,22 @@ type Operation struct {
 	Value     any           `json:"value,omitempty"`
 	OldValue  any           `json:"oldValue"`
 	Operation OperationType `json:"op"`
-	// FIXME: From is not used by this package as of now, since we do not support move and copy operations.
+	// NOTE: From is not used by this package as of now, since we do not support move and copy operations.
 	// From string `json:"from,omitempty"`
 	Path jsonpointer.Pointer `json:"path"`
 
-	Metadata map[string]string `json:"metadata,omitempty"`
+	UnmarshaledValue any               `json:"unmarshaledValue"`
+	Metadata         map[string]string `json:"metadata,omitempty"`
+}
+
+func (o Operation) Clone() Operation {
+	clone := o
+	clone.Metadata = make(map[string]string, len(o.Metadata))
+	for k, v := range o.Metadata {
+		clone.Metadata[k] = v
+	}
+
+	return clone
 }
 
 func (o Operation) GoString() string {

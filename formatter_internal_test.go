@@ -191,9 +191,11 @@ func Test_compileDiffPatchSeries(t *testing.T) {
 		},
 	}
 
+	f := Formatter{}
+
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := compileDiffPatchSeries(tc.src, tc.patch)
+			got, err := f.compileDiffPatchSeries(tc.src, tc.patch)
 			tc.assertErr(t, err)
 			require.Equal(t, tc.want, got)
 		})

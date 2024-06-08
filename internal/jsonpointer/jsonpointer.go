@@ -34,7 +34,14 @@ func NewPointerFromPath(path string) Pointer {
 	return Pointer(toks)
 }
 
-func (p Pointer) Append(s string) Pointer {
+func (p Pointer) Append(ptr Pointer) Pointer {
+	pp := make(Pointer, 0, len(p)+len(ptr))
+	pp = append(pp, p...)
+	pp = append(pp, ptr...)
+	return pp
+}
+
+func (p Pointer) AppendKey(s string) Pointer {
 	pp := make(Pointer, 0, len(p)+1)
 	pp = append(pp, p...)
 	pp = append(pp, s)
@@ -99,6 +106,16 @@ func (p Pointer) IsParentOf(child Pointer) bool {
 		return false
 	}
 	return equal(p, child[:len(child)-1])
+}
+
+func (p Pointer) IsAncestorOf(successor Pointer) bool {
+	if len(successor) < 1 || len(successor) <= len(p) {
+		return false
+	}
+	if len(p) == 0 {
+		return true
+	}
+	return equal(p, successor[:len(p)])
 }
 
 func (p Pointer) HasSameAncestorsAs(alt Pointer) bool {

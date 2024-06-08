@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -181,6 +182,7 @@ func (a *App) Run(ctx *cli.Context) error {
 	case "diff":
 		err = jsondiffprinter.NewJSONFormatter(ctx.App.Writer, options...).Format(before, patch)
 	case "terraform":
+		options = append(options, jsondiffprinter.WithJSONinJSONCompare(compare))
 		err = jsondiffprinter.NewTerraformFormatter(ctx.App.Writer, options...).Format(before, patch)
 	}
 	if err != nil {
@@ -188,6 +190,34 @@ func (a *App) Run(ctx *cli.Context) error {
 	}
 
 	return nil
+}
+
+func compare(before, after any) ([]byte, error) {
+	beforeJSON, err := json.Marshal(before)
+	if err != nil {
+		return nil, err
+	}
+
+	afterJSON, err := json.Marshal(after)
+	if err != nil {
+		return nil, err
+	}
+
+	patch, err := mattbaird.CreatePatch(beforeJSON, afterJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := bytes.Buffer{}
+	encoder := json.NewEncoder(&buf)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+	err = encoder.Encode(patch)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (a App) printPatch(c *cli.Context, patch any) {
