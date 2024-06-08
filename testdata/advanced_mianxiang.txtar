@@ -1,7 +1,10 @@
 {
+  "terraform": {
+    "jsonInJSON": true
+  },
   "jsonInJSON": [
-    "/array",
-    "/object"
+    "/object",
+    "/array"
   ],
   "patchLib": "mianxiang"
 }

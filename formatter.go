@@ -23,6 +23,11 @@ const (
 	singleLineReplaceIndicatorTerraform = `~`
 
 	singleLineReplaceTransitionIndicatorTerraform = `->`
+
+	jsonInJSONStartJSON      = "embeddedJSON("
+	jsonInJSONEndJSON        = ")"
+	jsonInJSONStartTerraform = "jsonencode("
+	jsonInJSONEndTerraform   = `)`
 )
 
 // A Comparer compares two JSON documents and returns a JSON patch that
@@ -53,6 +58,8 @@ type Formatter struct {
 	hideUnchanged                        bool
 	omitChangeIndicatorOnEmptyKey        bool
 	jsonInJSONComparer                   Comparer
+	jsonInJSONStart                      string
+	jsonInJSONEnd                        string
 	patchSeriesPostProcess               PatchSeriesPostProcessor
 }
 
@@ -68,6 +75,8 @@ func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
 		commas:            true,
 		keyValueSeparator: keyValueSeparatorJSON,
 		keyQuote:          keyQuoteJSON,
+		jsonInJSONStart:   jsonInJSONStartJSON,
+		jsonInJSONEnd:     jsonInJSONEndJSON,
 	}
 
 	for _, option := range options {
@@ -95,6 +104,8 @@ func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
 		singleLineReplaceTransitionIndicator: singleLineReplaceTransitionIndicatorTerraform,
 		hideUnchanged:                        true,
 		omitChangeIndicatorOnEmptyKey:        true,
+		jsonInJSONStart:                      jsonInJSONStartTerraform,
+		jsonInJSONEnd:                        jsonInJSONEndTerraform,
 	}
 
 	for _, option := range options {
@@ -131,35 +142,35 @@ func (v valueType) notePos() notePosition {
 	}
 }
 
-func (v valueType) leftBracket() string {
+func (v valueType) leftBracket(f Formatter) string {
 	switch v {
 	case valueTypePlain:
 		return ""
 	case valueTypeObject:
 		return "{"
 	case valueTypeJSONinJSONObject:
-		return "jsonencode("
+		return f.jsonInJSONStart
 	case valueTypeArray:
 		return "["
 	case valueTypeJSONinJSONArray:
-		return "jsonencode("
+		return f.jsonInJSONStart
 	default:
 		panic("undefined value type")
 	}
 }
 
-func (v valueType) rightBracket() string {
+func (v valueType) rightBracket(f Formatter) string {
 	switch v {
 	case valueTypePlain:
 		return ""
 	case valueTypeObject:
 		return "}"
 	case valueTypeJSONinJSONObject:
-		return ")"
+		return f.jsonInJSONEnd
 	case valueTypeArray:
 		return "]"
 	case valueTypeJSONinJSONArray:
-		return ")"
+		return f.jsonInJSONEnd
 	default:
 		panic("undefined value type")
 	}
@@ -447,21 +458,23 @@ type printOpConfig struct {
 
 func (f Formatter) printOp(cfg printOpConfig) {
 	if cfg.op.Operation == jsonpatch.OperationReplace && !f.singleLineReplace {
-		op := cfg.op
-		op.Operation = jsonpatch.OperationRemove
-		f.printOp(printOpConfig{
-			preDiffMarkerIndent: cfg.preDiffMarkerIndent,
-			indent:              cfg.indent,
-			key:                 cfg.key,
-			value:               cfg.valueOld,
-			valType:             cfg.valType,
-			op:                  op,
-			withKey:             cfg.withKey,
-		})
+		if cfg.valType != valueTypeJSONinJSONObject && cfg.valType != valueTypeJSONinJSONArray {
+			op := cfg.op.Clone()
+			op.Operation = jsonpatch.OperationRemove
+			f.printOp(printOpConfig{
+				preDiffMarkerIndent: cfg.preDiffMarkerIndent,
+				indent:              cfg.indent,
+				key:                 cfg.key,
+				value:               cfg.valueOld,
+				valType:             cfg.valType,
+				op:                  op,
+				withKey:             cfg.withKey,
+			})
+			fmt.Fprintf(f.w, "%s\n", cfg.valueOldComma)
+		}
 
-		op = cfg.op
+		op := cfg.op.Clone()
 		op.Operation = jsonpatch.OperationAdd
-		fmt.Fprintf(f.w, "%s\n", cfg.valueOldComma)
 		f.printOp(printOpConfig{
 			preDiffMarkerIndent: cfg.preDiffMarkerIndent,
 			indent:              cfg.indent,
@@ -477,12 +490,12 @@ func (f Formatter) printOp(cfg printOpConfig) {
 	leftBracket := ""
 	valueNote := ""
 	endNote := ""
-	if len(cfg.valType.leftBracket()) > 0 {
-		leftBracket = cfg.valType.leftBracket() + "\n"
+	if len(cfg.valType.leftBracket(f)) > 0 {
+		leftBracket = cfg.valType.leftBracket(f) + "\n"
 	}
 	switch cfg.valType.notePos() {
 	case notePositionKey:
-		leftBracket = cfg.valType.leftBracket() + cfg.op.Metadata["note"] + "\n"
+		leftBracket = cfg.valType.leftBracket(f) + cfg.op.Metadata["note"] + "\n"
 	case notePositionValue:
 		valueNote = cfg.op.Metadata["note"]
 	case notePositionEnd:
@@ -503,8 +516,8 @@ func (f Formatter) printOp(cfg printOpConfig) {
 		fmt.Fprintf(f.w, "%s %s ", cfg.valueOld, f.c.yellow(f.singleLineReplaceTransitionIndicator))
 	}
 	fmt.Fprint(f.w, cfg.value, valueNote)
-	if cfg.valType.rightBracket() != "" {
-		fmt.Fprintf(f.w, "%s  %s%s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.rightBracket(), endNote)
+	if cfg.valType.rightBracket(f) != "" {
+		fmt.Fprintf(f.w, "%s  %s%s%s", cfg.preDiffMarkerIndent, cfg.indent, cfg.valType.rightBracket(f), endNote)
 	}
 }
 
@@ -532,6 +545,12 @@ func (f Formatter) printCommaOrNot(i int, patch jsonpatch.Patch, op jsonpatch.Op
 	if i == len(patch)-1 {
 		return ""
 	}
+	// if _, ok := patch[i].Value.(jsonInJSONArray); ok {
+	// 	return ""
+	// }
+	// if _, ok := patch[i].Value.(jsonInJSONObject); ok {
+	// 	return ""
+	// }
 	// if paths share the same ancestor, a comma is needed
 	if patch[i+1].Path.HasSameAncestorsAs(op.Path) {
 		return ","
@@ -543,17 +562,17 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 	switch vt := v.(type) {
 	case jsonInJSONObject:
 		sb := strings.Builder{}
-		sb.WriteString("jsonencode(\n")
+		sb.WriteString(f.jsonInJSONStart + "\n")
 		sb.WriteString(f.prefix + prefix + f.indentation + "  ")
 		sb.WriteString(f.formatIndent(map[string]any(vt), prefix+f.indentation, operation))
-		sb.WriteString("\n" + f.prefix + prefix + "  " + ")")
+		sb.WriteString("\n" + f.prefix + prefix + "  " + f.jsonInJSONEnd)
 		return sb.String()
 	case jsonInJSONArray:
 		sb := strings.Builder{}
-		sb.WriteString("jsonencode(\n")
+		sb.WriteString(f.jsonInJSONStart + "\n")
 		sb.WriteString(f.prefix + prefix + f.indentation + "  ")
 		sb.WriteString(f.formatIndent([]any(vt), prefix+f.indentation, operation))
-		sb.WriteString("\n" + f.prefix + prefix + "  " + ")")
+		sb.WriteString("\n" + f.prefix + prefix + "  " + f.jsonInJSONEnd)
 		return sb.String()
 	case map[string]any:
 		sb := strings.Builder{}

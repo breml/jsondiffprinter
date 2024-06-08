@@ -1,4 +1,8 @@
-{}
+{
+  "terraform": {
+    "jsonInJSON": true
+  }
+}
 -- before.json --
 {
   "array": "[\"foo\",\"bar\"]",
@@ -83,35 +87,8 @@
     )
     # (1 unchanged attribute hidden)
   }
--- jsonInJSON.0.json --
-[
-  {
-    "value": "new foo",
-    "op": "replace",
-    "path": "/0"
-  },
-  {
-    "value": "baz",
-    "op": "add",
-    "path": "/2"
-  }
-]
 -- jsonInJSON.1.json --
 [
-  {
-    "value": "foo2",
-    "op": "replace",
-    "path": "/array_changed/0"
-  },
-  {
-    "value": "baz2",
-    "op": "replace",
-    "path": "/array_changed/2"
-  },
-  {
-    "op": "remove",
-    "path": "/string_removed"
-  },
   {
     "op": "remove",
     "path": "/array_item_removed/1"
@@ -119,25 +96,6 @@
   {
     "op": "remove",
     "path": "/number_removed"
-  },
-  {
-    "op": "remove",
-    "path": "/array_removed"
-  },
-  {
-    "value": 14,
-    "op": "replace",
-    "path": "/number_changed"
-  },
-  {
-    "value": "bar changed",
-    "op": "replace",
-    "path": "/string_changed"
-  },
-  {
-    "value": "biz",
-    "op": "add",
-    "path": "/array_item_added/3"
   },
   {
     "op": "remove",
@@ -149,9 +107,37 @@
     "path": "/object_changed/key"
   },
   {
-    "value": "new",
+    "value": "bar changed",
+    "op": "replace",
+    "path": "/string_changed"
+  },
+  {
+    "value": 14,
+    "op": "replace",
+    "path": "/number_changed"
+  },
+  {
+    "op": "remove",
+    "path": "/array_removed"
+  },
+  {
+    "value": "biz",
     "op": "add",
-    "path": "/string_new"
+    "path": "/array_item_added/3"
+  },
+  {
+    "op": "remove",
+    "path": "/string_removed"
+  },
+  {
+    "value": "foo2",
+    "op": "replace",
+    "path": "/array_changed/0"
+  },
+  {
+    "value": "baz2",
+    "op": "replace",
+    "path": "/array_changed/2"
   },
   {
     "value": [
@@ -163,15 +149,33 @@
     "path": "/array_new"
   },
   {
-    "value": {
-      "key": "value"
-    },
+    "value": "new",
     "op": "add",
-    "path": "/object_new"
+    "path": "/string_new"
   },
   {
     "value": 14,
     "op": "add",
     "path": "/number_new"
+  },
+  {
+    "value": {
+      "key": "value"
+    },
+    "op": "add",
+    "path": "/object_new"
+  }
+]
+-- jsonInJSON.0.json --
+[
+  {
+    "value": "new foo",
+    "op": "replace",
+    "path": "/0"
+  },
+  {
+    "value": "baz",
+    "op": "add",
+    "path": "/2"
   }
 ]

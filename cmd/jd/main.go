@@ -91,6 +91,12 @@ func main0(osArgs []string) error {
 				},
 			},
 			&cli.BoolFlag{
+				Name:        "json-in-json",
+				Aliases:     []string{"j"},
+				Usage:       "enable json-in-json processing (embeded json)",
+				Destination: &app.jsonInJSON,
+			},
+			&cli.BoolFlag{
 				Name:        "color",
 				Aliases:     []string{"c"},
 				Usage:       "enable colorful printing",
@@ -118,6 +124,7 @@ func main0(osArgs []string) error {
 type App struct {
 	format        string
 	patchLib      string
+	jsonInJSON    bool
 	color         bool
 	hideUnchanged bool
 	showPatch     bool
@@ -178,11 +185,14 @@ func (a *App) Run(ctx *cli.Context) error {
 		jsondiffprinter.WithHideUnchanged(a.hideUnchanged),
 	}
 
+	if a.jsonInJSON {
+		options = append(options, jsondiffprinter.WithJSONinJSONCompare(a.compare))
+	}
+
 	switch strings.ToLower(a.format) {
 	case "diff":
 		err = jsondiffprinter.NewJSONFormatter(ctx.App.Writer, options...).Format(before, patch)
 	case "terraform":
-		options = append(options, jsondiffprinter.WithJSONinJSONCompare(compare))
 		err = jsondiffprinter.NewTerraformFormatter(ctx.App.Writer, options...).Format(before, patch)
 	}
 	if err != nil {
@@ -192,32 +202,94 @@ func (a *App) Run(ctx *cli.Context) error {
 	return nil
 }
 
-func compare(before, after any) ([]byte, error) {
-	beforeJSON, err := json.Marshal(before)
-	if err != nil {
-		return nil, err
+// TODO: combine with initial JSON Patch calculation in func Run.
+func (a App) compare(before, after any) ([]byte, error) {
+	var err error
+	var beforeJSON, afterJSON []byte
+
+	jsonMarshal := func() error {
+		beforeJSON, err = json.Marshal(before)
+		if err != nil {
+			return err
+		}
+		afterJSON, err = json.Marshal(after)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
-	afterJSON, err := json.Marshal(after)
+	var marshal bool
+	var patch any
+	switch strings.ToLower(a.patchLib) {
+	case "cameront":
+		patch, err = cameront.MakePatch(before, after)
+		marshal = true
+	case "herkyl":
+		err = jsonMarshal()
+		if err != nil {
+			break
+		}
+		patch, err = herkyl.Diff(beforeJSON, afterJSON)
+		marshal = true
+	case "mattbaird":
+		err = jsonMarshal()
+		if err != nil {
+			break
+		}
+		patch, err = mattbaird.CreatePatch(beforeJSON, afterJSON)
+		marshal = true
+	case "mianxiang":
+		// TODO: consider options offered by 520MianXiangDuiXiang520/json-diff
+		err = jsonMarshal()
+		if err != nil {
+			break
+		}
+		patch, err = mianxiang.AsDiffs(beforeJSON, afterJSON)
+	case "snorwin":
+		// TODO: add snorwin-threeway
+		var patchList snorwin.JSONPatchList
+		patchList, err = snorwin.CreateJSONPatch(after, before)
+		patch = patchList.Raw()
+	case "victorlowther":
+		err = jsonMarshal()
+		if err != nil {
+			break
+		}
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, false)
+		marshal = true
+	case "victorlowther-paranoid":
+		err = jsonMarshal()
+		if err != nil {
+			break
+		}
+		patch, err = victorlowther.Generate(beforeJSON, afterJSON, true)
+		marshal = true
+	case "wi2l":
+		patch, err = wI2L.Compare(before, after)
+		marshal = true
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to calculate JSON patch using %q: %w", a.patchLib, err)
 	}
 
-	patch, err := mattbaird.CreatePatch(beforeJSON, afterJSON)
-	if err != nil {
-		return nil, err
+	var patchData []byte
+	if marshal {
+		buf := bytes.Buffer{}
+		encoder := json.NewEncoder(&buf)
+		encoder.SetIndent("", "  ")
+		encoder.SetEscapeHTML(false)
+		err = encoder.Encode(patch)
+		if err != nil {
+			return nil, err
+		}
+		patchData = buf.Bytes()
+	} else {
+		patchData = patch.([]byte)
+		patchData = append(patchData, '\n')
 	}
 
-	buf := bytes.Buffer{}
-	encoder := json.NewEncoder(&buf)
-	encoder.SetIndent("", "  ")
-	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(patch)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
+	return patchData, nil
 }
 
 func (a App) printPatch(c *cli.Context, patch any) {

@@ -1,4 +1,7 @@
 {
+  "terraform": {
+    "jsonInJSON": true
+  },
   "jsonInJSON": [
     "/array",
     "/object"

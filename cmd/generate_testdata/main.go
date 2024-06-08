@@ -31,11 +31,13 @@ type metadata struct {
 		IndentedDiffMarkers *bool   `json:"indentedDiffMarkers,omitempty"`
 		Commas              *bool   `json:"commas,omitempty"`
 		HideUnchanged       *bool   `json:"hideUnchanged,omitempty"`
+		JSONInJSON          *bool   `json:"jsonInJSON,omitempty"`
 	} `json:"json,omitempty"`
 	Terraform *struct {
 		Indentation   *string `json:"indentation,omitempty"`
 		HideUnchanged *bool   `json:"hideUnchanged,omitempty"`
 		MetadataAdder *bool   `json:"metadataAdder,omitempty"`
+		JSONInJSON    *bool   `json:"jsonInJSON,omitempty"`
 	} `json:"terraform,omitempty"`
 	Metadata   map[string]map[string]any `json:"metadata,omitempty"`
 	JSONInJSON []string                  `json:"jsonInJSON,omitempty"`
@@ -112,8 +114,16 @@ func main() {
 			beforeStr, err := ptr.Eval(before)
 			die(err)
 
+			if beforeStr == nil {
+				beforeStr = "null"
+			}
+
 			afterStr, err := ptr.Eval(after)
 			die(err)
+
+			if afterStr == nil {
+				afterStr = "null"
+			}
 
 			patchData := compare(patchLib, []byte(beforeStr.(string)), []byte(afterStr.(string)))
 
