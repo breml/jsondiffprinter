@@ -33,6 +33,12 @@ Acknowledgments for the supported JSON patch libraries:
 
 `
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	if err := main0(os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -116,6 +122,9 @@ func main0(osArgs []string) error {
 			},
 		},
 		CustomAppHelpTemplate: cli.AppHelpTemplate + patchLibAcknowledgments,
+
+		Copyright: "© 2024, Lucas Bremgartner",
+		Version:   fmt.Sprintf("%s (%s, %s)", version, commit, date),
 	}
 
 	return cliapp.Run(osArgs)
@@ -181,6 +190,7 @@ func (a *App) Run(ctx *cli.Context) error {
 	a.printPatch(ctx, patch)
 
 	options := []jsondiffprinter.Option{
+		jsondiffprinter.WithWriter(ctx.App.Writer),
 		jsondiffprinter.WithColor(a.color),
 		jsondiffprinter.WithHideUnchanged(a.hideUnchanged),
 	}
@@ -189,12 +199,11 @@ func (a *App) Run(ctx *cli.Context) error {
 		options = append(options, jsondiffprinter.WithJSONinJSONCompare(a.compare))
 	}
 
-	switch strings.ToLower(a.format) {
-	case "diff":
-		err = jsondiffprinter.NewJSONFormatter(ctx.App.Writer, options...).Format(before, patch)
-	case "terraform":
-		err = jsondiffprinter.NewTerraformFormatter(ctx.App.Writer, options...).Format(before, patch)
+	if strings.ToLower(a.format) == "terraform" {
+		options = append([]jsondiffprinter.Option{jsondiffprinter.WithTerraformDefaults()}, options...)
 	}
+
+	err = jsondiffprinter.Format(before, patch, options...)
 	if err != nil {
 		return fmt.Errorf("failed to format using format %q: %w", a.format, err)
 	}

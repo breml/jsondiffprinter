@@ -191,7 +191,7 @@ func Test_compileDiffPatchSeries(t *testing.T) {
 		},
 	}
 
-	f := Formatter{}
+	f := formatter{}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
