@@ -15,8 +15,7 @@ var source []byte
 var patch []byte
 
 func main() {
-	formatter := jsondiffprinter.NewJSONFormatter(os.Stdout)
-	err := formatter.Format(source, patch)
+	err := jsondiffprinter.Format(source, patch)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

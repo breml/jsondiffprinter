@@ -111,19 +111,19 @@ func TestFormatter(t *testing.T) {
 
 			var buf bytes.Buffer
 			formatters := []struct {
-				name      string
-				formatter jsondiffprinter.Formatter
+				name    string
+				options []jsondiffprinter.Option
 
 				wantFilename string
 			}{
 				{
 					name:         "json",
-					formatter:    jsondiffprinter.NewJSONFormatter(&buf, jsonOptions...),
+					options:      append([]jsondiffprinter.Option{jsondiffprinter.WithWriter(&buf)}, jsonOptions...),
 					wantFilename: "diff.json",
 				},
 				{
 					name:         "terraform",
-					formatter:    jsondiffprinter.NewTerraformFormatter(&buf, terraformOptions...),
+					options:      append([]jsondiffprinter.Option{jsondiffprinter.WithTerraformDefaults(), jsondiffprinter.WithWriter(&buf)}, terraformOptions...),
 					wantFilename: "diff.tf",
 				},
 			}
@@ -137,7 +137,7 @@ func TestFormatter(t *testing.T) {
 					jsonInJSONInvocation = 0
 					buf.Reset()
 
-					err := formatter.formatter.Format(before, txtarFileByName(t, txtar, "patch.json").Data)
+					err := jsondiffprinter.Format(before, txtarFileByName(t, txtar, "patch.json").Data, formatter.options...)
 					require.NoError(t, err)
 
 					require.EqualStringWithTabwriter(t, string(txtarFileByName(t, txtar, formatter.wantFilename).Data), buf.String())

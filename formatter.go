@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"slices"
 	"sort"
 	"strings"
@@ -40,9 +41,9 @@ type Patch = jsonpatch.Patch
 // diff is printed. It can be used to modify the diff before it is printed.
 type PatchSeriesPostProcessor func(diff Patch) Patch
 
-// Formatter formats the diff if the given JSON patch is applied to the given
+// formatter formats the diff if the given JSON patch is applied to the given
 // JSON document.
-type Formatter struct {
+type formatter struct {
 	w io.Writer
 	c colorize
 
@@ -61,58 +62,6 @@ type Formatter struct {
 	jsonInJSONStart                      string
 	jsonInJSONEnd                        string
 	patchSeriesPostProcess               PatchSeriesPostProcessor
-}
-
-// NewJSONFormatter creates a new JSON formatter.
-func NewJSONFormatter(w io.Writer, options ...Option) Formatter {
-	f := Formatter{
-		w: w,
-		c: colorize{
-			disable: true,
-		},
-
-		indentation:       "  ",
-		commas:            true,
-		keyValueSeparator: keyValueSeparatorJSON,
-		keyQuote:          keyQuoteJSON,
-		jsonInJSONStart:   jsonInJSONStartJSON,
-		jsonInJSONEnd:     jsonInJSONEndJSON,
-	}
-
-	for _, option := range options {
-		option(&f)
-	}
-
-	return f
-}
-
-// NewTerraformFormatter creates a new Terraform formatter.
-func NewTerraformFormatter(w io.Writer, options ...Option) Formatter {
-	f := Formatter{
-		w: w,
-		c: colorize{
-			disable: false,
-		},
-
-		indentation:                          "    ",
-		indentedDiffMarkers:                  true,
-		commas:                               false,
-		keyValueSeparator:                    keyValueSeparatorTerraform,
-		keyQuote:                             keyQuoteTerraform,
-		singleLineReplace:                    true,
-		singleLineReplaceIndicator:           singleLineReplaceIndicatorTerraform,
-		singleLineReplaceTransitionIndicator: singleLineReplaceTransitionIndicatorTerraform,
-		hideUnchanged:                        true,
-		omitChangeIndicatorOnEmptyKey:        true,
-		jsonInJSONStart:                      jsonInJSONStartTerraform,
-		jsonInJSONEnd:                        jsonInJSONEndTerraform,
-	}
-
-	for _, option := range options {
-		option(&f)
-	}
-
-	return f
 }
 
 type valueType int
@@ -142,7 +91,7 @@ func (v valueType) notePos() notePosition {
 	}
 }
 
-func (v valueType) leftBracket(f Formatter) string {
+func (v valueType) leftBracket(f formatter) string {
 	switch v {
 	case valueTypePlain:
 		return ""
@@ -159,7 +108,7 @@ func (v valueType) leftBracket(f Formatter) string {
 	}
 }
 
-func (v valueType) rightBracket(f Formatter) string {
+func (v valueType) rightBracket(f formatter) string {
 	switch v {
 	case valueTypePlain:
 		return ""
@@ -198,7 +147,27 @@ const (
 // is marshalable to a JSON document following the before mentioned
 // specification. In the second case is the argument marshaled to JSON before
 // being processed.
-func (f Formatter) Format(original any, jsonpatch any) error {
+//
+// Format accepts Options to configure the format and the destination.
+func Format(original any, jsonpatch any, options ...Option) error {
+	f := formatter{
+		w: os.Stdout,
+		c: colorize{
+			disable: true,
+		},
+
+		indentation:       "  ",
+		commas:            true,
+		keyValueSeparator: keyValueSeparatorJSON,
+		keyQuote:          keyQuoteJSON,
+		jsonInJSONStart:   jsonInJSONStartJSON,
+		jsonInJSONEnd:     jsonInJSONEndJSON,
+	}
+
+	for _, option := range options {
+		option(&f)
+	}
+
 	originalPatchTestSeries, err := f.asPatchTestSeries(original, jsonpointer.NewPointer())
 	if err != nil {
 		return fmt.Errorf("failed to convert JSON document to JSON patch series: %w", err)
@@ -220,7 +189,7 @@ func (f Formatter) Format(original any, jsonpatch any) error {
 	return nil
 }
 
-func (f Formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Pointer, isArray bool) (int, bool) {
+func (f formatter) printPatch(patch jsonpatch.Patch, parentPath jsonpointer.Pointer, isArray bool) (int, bool) {
 	var i int
 	var hasChange bool
 	var unchangedAttributes int
@@ -456,7 +425,7 @@ type printOpConfig struct {
 	withKey             bool
 }
 
-func (f Formatter) printOp(cfg printOpConfig) {
+func (f formatter) printOp(cfg printOpConfig) {
 	if cfg.op.Operation == jsonpatch.OperationReplace && !f.singleLineReplace {
 		if cfg.valType != valueTypeJSONinJSONObject && cfg.valType != valueTypeJSONinJSONArray {
 			op := cfg.op.Clone()
@@ -521,7 +490,7 @@ func (f Formatter) printOp(cfg printOpConfig) {
 	}
 }
 
-func (f Formatter) opTypeIndicator(opType jsonpatch.OperationType) string {
+func (f formatter) opTypeIndicator(opType jsonpatch.OperationType) string {
 	switch opType {
 	case jsonpatch.OperationTest:
 		return " "
@@ -537,7 +506,7 @@ func (f Formatter) opTypeIndicator(opType jsonpatch.OperationType) string {
 }
 
 // printCommaOrNot prints a comma if the next operation is in the same path.
-func (f Formatter) printCommaOrNot(i int, patch jsonpatch.Patch, op jsonpatch.Operation) string {
+func (f formatter) printCommaOrNot(i int, patch jsonpatch.Patch, op jsonpatch.Operation) string {
 	if !f.commas {
 		return ""
 	}
@@ -558,7 +527,7 @@ func (f Formatter) printCommaOrNot(i int, patch jsonpatch.Patch, op jsonpatch.Op
 	return ""
 }
 
-func (f Formatter) formatIndent(v any, prefix string, operation string) string {
+func (f formatter) formatIndent(v any, prefix string, operation string) string {
 	switch vt := v.(type) {
 	case jsonInJSONObject:
 		sb := strings.Builder{}
@@ -649,7 +618,7 @@ func (f Formatter) formatIndent(v any, prefix string, operation string) string {
 
 const defaultPatchAllocationSize = 32
 
-func (f Formatter) asPatchTestSeries(inValue any, path jsonpointer.Pointer) (jsonpatch.Patch, error) {
+func (f formatter) asPatchTestSeries(inValue any, path jsonpointer.Pointer) (jsonpatch.Patch, error) {
 	patches := make(jsonpatch.Patch, 0, defaultPatchAllocationSize)
 
 	value := inValue
@@ -761,7 +730,7 @@ func asJSONInJSON(v any) (any, bool) {
 	return nil, false
 }
 
-func (f Formatter) compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {
+func (f formatter) compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.Patch) (jsonpatch.Patch, error) {
 	if len(src) == 0 {
 		src = jsonpatch.Patch{}
 	}
@@ -936,7 +905,7 @@ func keys(m map[string]any) []string {
 	return keys
 }
 
-func (f Formatter) patchFromAny(value any) (jsonpatch.Patch, error) {
+func (f formatter) patchFromAny(value any) (jsonpatch.Patch, error) {
 	var jsonbody []byte
 	var err error
 

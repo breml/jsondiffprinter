@@ -181,6 +181,7 @@ func (a *App) Run(ctx *cli.Context) error {
 	a.printPatch(ctx, patch)
 
 	options := []jsondiffprinter.Option{
+		jsondiffprinter.WithWriter(ctx.App.Writer),
 		jsondiffprinter.WithColor(a.color),
 		jsondiffprinter.WithHideUnchanged(a.hideUnchanged),
 	}
@@ -189,12 +190,11 @@ func (a *App) Run(ctx *cli.Context) error {
 		options = append(options, jsondiffprinter.WithJSONinJSONCompare(a.compare))
 	}
 
-	switch strings.ToLower(a.format) {
-	case "diff":
-		err = jsondiffprinter.NewJSONFormatter(ctx.App.Writer, options...).Format(before, patch)
-	case "terraform":
-		err = jsondiffprinter.NewTerraformFormatter(ctx.App.Writer, options...).Format(before, patch)
+	if strings.ToLower(a.format) == "terraform" {
+		options = append([]jsondiffprinter.Option{jsondiffprinter.WithTerraformDefaults()}, options...)
 	}
+
+	err = jsondiffprinter.Format(before, patch, options...)
 	if err != nil {
 		return fmt.Errorf("failed to format using format %q: %w", a.format, err)
 	}

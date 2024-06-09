@@ -23,8 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	formatter := jsondiffprinter.NewJSONFormatter(os.Stdout)
-	err = formatter.Format(before, patch)
+	err = jsondiffprinter.Format(before, patch)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
