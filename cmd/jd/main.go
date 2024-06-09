@@ -33,6 +33,12 @@ Acknowledgments for the supported JSON patch libraries:
 
 `
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	if err := main0(os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -116,6 +122,9 @@ func main0(osArgs []string) error {
 			},
 		},
 		CustomAppHelpTemplate: cli.AppHelpTemplate + patchLibAcknowledgments,
+
+		Copyright: "© 2024, Lucas Bremgartner",
+		Version:   fmt.Sprintf("%s (%s, %s)", version, commit, date),
 	}
 
 	return cliapp.Run(osArgs)
