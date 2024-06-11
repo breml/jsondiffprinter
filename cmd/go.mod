@@ -7,7 +7,7 @@ require (
 	github.com/qri-io/jsonpointer v0.1.1
 	github.com/snorwin/jsonpatch v1.5.0
 	github.com/wI2L/jsondiff v0.5.2
-	golang.org/x/tools v0.21.0
+	golang.org/x/tools v0.22.0
 )
 
 require (
@@ -19,6 +19,7 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
+	golang.org/x/text v0.16.0 // indirect
 )
 
 require (
