@@ -6,7 +6,7 @@ require (
 	github.com/breml/jsondiffprinter v0.0.10
 	github.com/qri-io/jsonpointer v0.1.1
 	github.com/snorwin/jsonpatch v1.5.0
-	github.com/wI2L/jsondiff v0.5.2
+	github.com/wI2L/jsondiff v0.6.0
 	golang.org/x/tools v0.22.0
 )
 
