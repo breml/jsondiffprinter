@@ -241,45 +241,56 @@ func (f formatter) compileDiffPatchSeries(src jsonpatch.Patch, patch jsonpatch.P
 				}
 			}
 
-			if f.jsonInJSONComparer != nil && src[i].UnmarshaledValue != nil && patchOp.UnmarshaledValue != nil {
-				var diff jsonpatch.Patch
-				err := func() error {
-					jpatch, err := f.jsonInJSONComparer(src[i].UnmarshaledValue, patchOp.UnmarshaledValue)
-					if err != nil {
-						return err
+			patchOp.OldValue = src[i].Value
+
+			if f.jsonInJSONComparer != nil {
+				if src[i].UnmarshaledValue != nil && patchOp.UnmarshaledValue != nil {
+					var diff jsonpatch.Patch
+					err := func() error {
+						jpatch, err := f.jsonInJSONComparer(src[i].UnmarshaledValue, patchOp.UnmarshaledValue)
+						if err != nil {
+							return err
+						}
+
+						originalPatchTestSeries, err := f.asPatchTestSeries(src[i].UnmarshaledValue, jsonpointer.NewPointer())
+						if err != nil {
+							return err
+						}
+
+						patch, err := f.patchFromAny(jpatch)
+						if err != nil {
+							return err
+						}
+
+						diff, err = f.compileDiffPatchSeries(originalPatchTestSeries, patch)
+						if err != nil {
+							return err
+						}
+
+						return nil
+					}()
+					// Only consider JSON in JSON if comparing does not return any error,
+					// fall back to normal processing otherwise.
+					if nil == err {
+						for j := range diff {
+							diff[j].Path = src[i].Path.Append(diff[j].Path)
+						}
+
+						src = slices.Replace(src, i, i+1, diff[0:]...)
+
+						break
 					}
+				}
 
-					originalPatchTestSeries, err := f.asPatchTestSeries(src[i].UnmarshaledValue, jsonpointer.NewPointer())
-					if err != nil {
-						return err
-					}
+				if patchOp.UnmarshaledValue != nil {
+					patchOp.Value = patchOp.UnmarshaledValue
+				}
 
-					patch, err := f.patchFromAny(jpatch)
-					if err != nil {
-						return err
-					}
-
-					diff, err = f.compileDiffPatchSeries(originalPatchTestSeries, patch)
-					if err != nil {
-						return err
-					}
-
-					return nil
-				}()
-				// Only consider JSON in JSON if comparing does not return any error,
-				// fall back to normal processing otherwise.
-				if nil == err {
-					for j := range diff {
-						diff[j].Path = src[i].Path.Append(diff[j].Path)
-					}
-
-					src = slices.Replace(src, i, i+1, diff[0:]...)
-
-					break
+				if src[i].UnmarshaledValue != nil {
+					patchOp.OldValue = src[i].UnmarshaledValue
 				}
 			}
 
-			patchOp.OldValue = src[i].Value
 			src[i] = patchOp
 
 		case jsonpatch.OperationRemove:

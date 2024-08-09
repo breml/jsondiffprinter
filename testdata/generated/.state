@@ -41,6 +41,9 @@
   "../../testdata/force_update.txtar": {
     "checksum": "17951181916272195793"
   },
+  "../../testdata/json_in_json_complete_replace.txtar": {
+    "checksum": "12018165136137614928"
+  },
   "../../testdata/json_in_json_small.txtar": {
     "checksum": "10825381817062171312"
   },
