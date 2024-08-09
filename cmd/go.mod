@@ -7,7 +7,7 @@ require (
 	github.com/qri-io/jsonpointer v0.1.1
 	github.com/snorwin/jsonpatch v1.5.0
 	github.com/wI2L/jsondiff v0.6.0
-	golang.org/x/tools v0.23.0
+	golang.org/x/tools v0.24.0
 )
 
 require (
@@ -28,7 +28,7 @@ require (
 	github.com/cameront/go-jsonpatch v0.0.0-20180223123257-a8710867776e
 	github.com/herkyl/patchwerk v0.0.0-20190629103337-f0ea77068152
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
-	github.com/tidwall/gjson v1.17.1 // indirect
+	github.com/tidwall/gjson v1.17.3 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
