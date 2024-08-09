@@ -1,0 +1,46 @@
+{
+  "json": {
+    "jsonInJSON": true
+  },
+  "terraform": {
+    "jsonInJSON": true
+  }
+}
+-- before.json --
+{
+  "json2string": "{\"key\":\"value\"}",
+  "string2json": "string"
+}
+-- after.json --
+{
+  "json2string": "string",
+  "string2json": "{\"key\":\"value\"}"
+}
+-- diff.json --
+  {
+-   "json2string": embeddedJSON(
+      {
+-       "key": "value"
+      }
+    ),
++   "json2string": "string",
+-   "string2json": "string"
++   "string2json": embeddedJSON(
+      {
++       "key": "value"
+      }
+    )
+  }
+-- diff.tf --
+  {
+  ~ json2string = jsonencode(
+      {
+      - key = "value"
+      }
+    ) -> "string"
+  ~ string2json = "string" -> jsonencode(
+      {
+      + key = "value"
+      }
+    )
+  }
